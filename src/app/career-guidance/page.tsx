@@ -58,7 +58,7 @@ function CareerGuidanceContent() {
       {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-4 border-b border-gray-300 pb-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+          <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
             Career Guidance & Planning Hub
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 font-semibold">

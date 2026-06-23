@@ -41,7 +41,7 @@ function MockTestsContent() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+        <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
           Mock Tests & Terminal Exams
         </h2>
         <p className="text-xs sm:text-sm text-gray-500 font-semibold">

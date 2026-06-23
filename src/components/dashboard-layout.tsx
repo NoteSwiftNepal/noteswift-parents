@@ -172,8 +172,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className="h-10 w-10 object-contain rounded-xl"
               />
               <div className="flex flex-col">
-                <span className="font-bold text-lg leading-none text-gray-800">NoteSwift</span>
-                <span className="text-xs sm:text-sm text-gray-500 font-bold">Parents Portal</span>
+                <span className="font-bold text-base leading-none text-gray-800">NoteSwift</span>
+                <span className="text-[10px] sm:text-xs text-gray-500 font-bold">Parents Portal</span>
               </div>
             </Link>
           </SidebarHeader>
@@ -193,7 +193,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         href={item.href}
                         onClick={() => handleLinkClick(item.href)}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm sm:text-[15px] font-bold",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-xs sm:text-sm font-bold",
                           isActive
                             ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md hover:shadow-lg"
                             : "text-foreground/80 hover:bg-secondary/80 hover:text-foreground"
@@ -217,8 +217,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   {parent.avatarEmoji}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-extrabold text-sm sm:text-base truncate text-gray-800 animate-fade-in">{parent.fullName}</span>
-                  <span className="text-xs sm:text-sm text-gray-500 font-bold">Parent Account</span>
+                  <span className="font-extrabold text-xs sm:text-sm truncate text-gray-800 animate-fade-in">{parent.fullName}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-500 font-bold">Parent Account</span>
                 </div>
               </div>
             )}
@@ -226,7 +226,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               variant="outline"
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full justify-start gap-2.5 h-11 px-3 rounded-xl border-gray-300 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-700 transition-all duration-200 font-bold text-sm sm:text-[15px] bg-white"
+              className="w-full justify-start gap-2.5 h-11 px-3 rounded-xl border-gray-300 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-700 transition-all duration-200 font-bold text-xs sm:text-sm bg-white"
             >
               {isLoggingOut ? (
                 <Loader2 className="h-4 w-4 animate-spin text-red-500" />
@@ -241,34 +241,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* MAIN INSET */}
         <SidebarInset className="flex flex-col flex-1 min-h-screen">
           {/* TOPBAR */}
-          <header className="sticky top-0 flex h-16 items-center justify-between border-b border-gray-300 px-6 z-20 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <header className="sticky top-0 flex h-16 items-center justify-between border-b border-gray-300 px-4 sm:px-6 z-20 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               <div className="hidden md:flex flex-col">
-                <h1 className="text-xl font-bold text-gray-800 font-headline leading-tight">{getPageTitle()}</h1>
-                <span className="text-xs text-gray-500 font-bold">{formattedDate}</span>
+                <h1 className="text-lg font-bold text-gray-800 font-headline leading-tight">{getPageTitle()}</h1>
+                <span className="text-[11px] text-gray-500 font-bold">{formattedDate}</span>
               </div>
             </div>
-
+ 
             {/* Topbar Actions */}
             <div className="flex items-center gap-3">
               {/* CHILD SWITCHER DROPDOWN */}
               {activeChild && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2.5 h-11 px-3.5 rounded-xl border-gray-300 hover:bg-secondary/40 shadow-sm transition-all duration-200 bg-white">
+                    <Button variant="outline" className="flex items-center gap-2.5 h-11 px-2 sm:px-3.5 rounded-xl border-gray-300 hover:bg-secondary/40 shadow-sm transition-all duration-200 bg-white">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200 select-none">
                         {activeChild.avatarEmoji}
                       </div>
-                      <div className="flex flex-col items-start text-left select-none gap-0.5">
-                        <span className="text-[9px] font-extrabold text-gray-500 uppercase tracking-wider leading-none">Active Student</span>
-                        <span className="text-xs font-bold text-gray-800 leading-none">{activeChild.fullName}</span>
+                      <div className="hidden sm:flex flex-col items-start text-left select-none gap-0.5">
+                        <span className="text-[8px] font-extrabold text-gray-500 uppercase tracking-wider leading-none">Active Student</span>
+                        <span className="text-[11px] font-bold text-gray-800 leading-none">{activeChild.fullName}</span>
                       </div>
-                      <ChevronDown className="h-4 w-4 text-gray-500 ml-1 shrink-0" />
+                      <ChevronDown className="h-4 w-4 text-gray-500 ml-0.5 sm:ml-1 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 rounded-xl border border-gray-300 shadow-lg p-1.5 bg-white">
-                    <DropdownMenuLabel className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2.5 py-1.5">Switch Student</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-[9px] font-bold text-gray-500 uppercase tracking-wider px-2.5 py-1.5">Switch Student</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {linkedChildren.map((child) => (
                       <DropdownMenuItem
@@ -276,15 +276,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         onClick={() => handleStudentSwitch(child)}
                         className={cn(
                           "flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors",
-                          activeChild.id === child.id ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-secondary/60 text-gray-700"
+                          activeChild.id === child.id ? "bg-blue-50 text-blue-700 font-bold text-xs" : "hover:bg-secondary/60 text-gray-700 text-xs"
                         )}
                       >
-                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200">
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px] shrink-0 border border-blue-200">
                           {child.avatarEmoji}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold">{child.fullName}</span>
-                          <span className="text-xs text-gray-500 font-semibold">{child.grade}</span>
+                          <span className="text-xs font-bold">{child.fullName}</span>
+                          <span className="text-[10px] text-gray-500 font-semibold">{child.grade}</span>
                         </div>
                       </DropdownMenuItem>
                     ))}
@@ -306,9 +306,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-80 rounded-xl border border-gray-300 shadow-lg p-0 bg-white">
                   <div className="flex items-center justify-between p-4 border-b border-gray-300">
-                    <h4 className="text-sm font-bold text-gray-800">Notifications</h4>
+                    <h4 className="text-xs font-bold text-gray-800">Notifications</h4>
                     {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className="text-xs text-blue-600 font-bold hover:underline">
+                      <button onClick={markAllAsRead} className="text-[11px] text-blue-600 font-bold hover:underline">
                         Mark all as read
                       </button>
                     )}
@@ -316,13 +316,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   <div className="divide-y divide-gray-300 max-h-64 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map(n => (
-                        <div key={n.id} className={cn("p-4 text-xs transition-colors", n.unread ? "bg-blue-50/50" : "")}>
+                        <div key={n.id} className={cn("p-4 text-[11px] transition-colors", n.unread ? "bg-blue-50/50" : "")}>
                           <p className="font-semibold text-gray-800">{n.text}</p>
-                          <span className="text-xs text-gray-500 font-bold mt-1 block">{n.time}</span>
+                          <span className="text-[10px] text-gray-500 font-bold mt-1 block">{n.time}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="p-6 text-center text-gray-500 font-bold">
+                      <div className="p-6 text-center text-gray-500 font-bold text-xs">
                         No notifications
                       </div>
                     )}
@@ -333,7 +333,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* MAIN CONTENT CONTAINER */}
-          <main className="flex-1 w-full p-6 md:p-8 overflow-y-auto">
+          <main className="flex-1 w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
             {isPageLoading ? (
               <div className="flex flex-col items-center justify-center min-h-[400px] h-full py-20 space-y-4">
                 <div className="relative flex items-center justify-center">

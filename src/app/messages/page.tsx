@@ -17,7 +17,8 @@ import {
   Info,
   Calendar,
   Sparkles,
-  Users
+  Users,
+  ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockDatabase, ChatThread, Message, Teacher } from "@/data/mockData";
@@ -32,6 +33,7 @@ function MessagesContent() {
   const [activeThreadId, setActiveThreadId] = useState<string>(mockDatabase.chats[0]?.id || "");
   const [typedMessage, setTypedMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
 
   if (!activeChild) {
     return (
@@ -109,7 +111,7 @@ function MessagesContent() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+        <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
           Message Center
         </h2>
         <p className="text-xs sm:text-sm text-gray-500 font-semibold">
@@ -118,9 +120,12 @@ function MessagesContent() {
       </div>
 
       {/* Main Messaging Hub */}
-      <div className="grid gap-6 md:grid-cols-3 h-[600px] border border-gray-300 rounded-3xl bg-white shadow-sm overflow-hidden">
+      <div className="flex md:grid md:grid-cols-3 gap-0 md:gap-6 h-[600px] border border-gray-300 rounded-3xl bg-white shadow-sm overflow-hidden">
         {/* Left Panel: Chats List */}
-        <div className="md:col-span-1 border-r border-gray-300 flex flex-col h-full bg-gray-50/50">
+        <div className={cn(
+          "w-full md:w-auto md:col-span-1 border-r border-gray-300 flex flex-col h-full bg-gray-50/50",
+          mobileView === "chat" ? "hidden md:flex" : "flex"
+        )}>
           {/* Search bar */}
           <div className="p-4 border-b border-gray-300 bg-white">
             <div className="relative">
@@ -142,7 +147,10 @@ function MessagesContent() {
                 return (
                   <button
                     key={thread.id}
-                    onClick={() => setActiveThreadId(thread.id)}
+                    onClick={() => {
+                      setActiveThreadId(thread.id);
+                      setMobileView("chat");
+                    }}
                     className={cn(
                       "w-full text-left p-4 flex gap-3 transition-colors text-xs sm:text-sm",
                       isActive ? "bg-blue-50/50" : "hover:bg-gray-150/40 bg-white"
@@ -177,12 +185,23 @@ function MessagesContent() {
         </div>
 
         {/* Right Panel: Active Conversation Window */}
-        <div className="md:col-span-2 flex flex-col h-full bg-white">
+        <div className={cn(
+          "w-full md:w-auto md:col-span-2 flex flex-col h-full bg-white",
+          mobileView === "list" ? "hidden md:flex" : "flex"
+        )}>
           {activeThread ? (
             <>
               {/* Thread Header */}
               <div className="p-4 border-b border-gray-300 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileView("list")}
+                    className="md:hidden h-9 w-9 rounded-xl border border-gray-300 hover:bg-secondary/40 shrink-0"
+                  >
+                    <ArrowLeft className="h-4.5 w-4.5 text-gray-600" />
+                  </Button>
                   <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-100 text-blue-750 font-extrabold text-sm border border-blue-200">
                     {activeThread.teacher.name.charAt(0)}
                   </div>

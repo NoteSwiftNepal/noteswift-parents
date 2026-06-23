@@ -71,10 +71,10 @@ function DashboardContent() {
           <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm">
             Parent Overview
           </span>
-          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+          <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
             Namaste, {parent?.fullName}!
           </h2>
-          <p className="text-blue-100 text-sm md:text-base max-w-xl">
+          <p className="text-blue-100 text-xs md:text-sm max-w-xl">
             Here's how <span className="font-bold text-white underline decoration-yellow-400 underline-offset-4">{activeChild.fullName}</span> is progressing today. Check attendance, assignment alerts, and term grades.
           </p>
         </div>

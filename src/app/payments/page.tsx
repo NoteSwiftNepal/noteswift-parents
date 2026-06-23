@@ -104,7 +104,7 @@ function PaymentsContent() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+        <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
           Fee & Payment Management
         </h2>
         <p className="text-xs sm:text-sm text-gray-500 font-semibold">
@@ -184,37 +184,37 @@ function PaymentsContent() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-300 bg-gray-50/25 text-xs font-bold text-gray-500 uppercase select-none">
-                  <th className="py-3 px-6">Invoice ID</th>
-                  <th className="py-3 px-6">Description</th>
-                  <th className="py-3 px-6 text-center">Amount (NPR)</th>
-                  <th className="py-3 px-6 text-center">Due Date</th>
-                  <th className="py-3 px-6 text-center">Status</th>
-                  <th className="py-3 px-6 text-right">Actions</th>
+                  <th className="py-3 px-3 sm:px-6">Invoice ID</th>
+                  <th className="py-3 px-3 sm:px-6">Description</th>
+                  <th className="py-3 px-3 sm:px-6 text-center">Amount (NPR)</th>
+                  <th className="py-3 px-3 sm:px-6 text-center">Due Date</th>
+                  <th className="py-3 px-3 sm:px-6 text-center">Status</th>
+                  <th className="py-3 px-3 sm:px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300 text-xs sm:text-sm">
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-secondary/15 transition-colors">
-                    <td className="py-4 px-6 font-bold text-gray-800">{inv.id}</td>
-                    <td className="py-4 px-6 font-bold text-gray-650">{inv.description}</td>
-                    <td className="py-4 px-6 text-center font-extrabold text-gray-900">
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 font-bold text-gray-800">{inv.id}</td>
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 font-bold text-gray-650">{inv.description}</td>
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 text-center font-extrabold text-gray-900">
                       NPR {inv.amount.toLocaleString()}
                     </td>
-                    <td className="py-4 px-6 text-center text-gray-500 font-bold">
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 text-center text-gray-500 font-bold">
                       {inv.dueDate}
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 text-center">
                       {inv.status === "paid" ? (
-                        <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-300 rounded-full font-bold">
+                        <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-300 rounded-full font-bold text-[10px] sm:text-xs">
                           Paid
                         </Badge>
                       ) : (
-                        <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-300 rounded-full font-bold animate-pulse">
+                        <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-300 rounded-full font-bold animate-pulse text-[10px] sm:text-xs">
                           Pending
                         </Badge>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="py-2.5 sm:py-4 px-3 sm:px-6 text-right">
                       {inv.status === "paid" ? (
                         <Button 
                           onClick={() => handleDownloadReceipt(inv.id)}
@@ -223,7 +223,7 @@ function PaymentsContent() {
                           className="text-xs font-bold text-blue-600 hover:text-blue-700 rounded-xl flex items-center gap-1 ml-auto border border-transparent hover:border-gray-200"
                         >
                           <Download className="h-4 w-4" />
-                          <span>Receipt</span>
+                          <span className="hidden sm:inline">Receipt</span>
                         </Button>
                       ) : (
                         <Button 

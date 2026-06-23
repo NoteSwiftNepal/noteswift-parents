@@ -64,7 +64,7 @@ function AttendanceContent() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+        <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
           Attendance Analytics
         </h2>
         <p className="text-xs sm:text-sm text-gray-500 font-semibold">
@@ -219,16 +219,16 @@ function AttendanceContent() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-300 bg-gray-50/25 text-xs font-bold text-gray-500 uppercase select-none">
-                    <th className="py-3 px-6">Date</th>
-                    <th className="py-3 px-6">Status</th>
-                    <th className="py-3 px-6">Reason / Remarks</th>
+                    <th className="py-3 px-3 sm:px-6">Date</th>
+                    <th className="py-3 px-3 sm:px-6">Status</th>
+                    <th className="py-3 px-3 sm:px-6">Reason / Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-300 text-xs sm:text-sm">
                   {filteredAttendance.length > 0 ? (
                     filteredAttendance.map((record, idx) => (
                       <tr key={idx} className="hover:bg-secondary/15 transition-colors">
-                        <td className="py-3.5 px-6 font-semibold text-gray-700">
+                        <td className="py-2 sm:py-3.5 px-3 sm:px-6 font-semibold text-gray-700">
                           {new Date(record.date).toLocaleDateString("en-US", {
                             weekday: "short",
                             year: "numeric",
@@ -236,8 +236,8 @@ function AttendanceContent() {
                             day: "numeric"
                           })}
                         </td>
-                        <td className="py-3.5 px-6">{getStatusBadge(record.status)}</td>
-                        <td className="py-3.5 px-6 text-gray-500 font-semibold">
+                        <td className="py-2 sm:py-3.5 px-3 sm:px-6">{getStatusBadge(record.status)}</td>
+                        <td className="py-2 sm:py-3.5 px-3 sm:px-6 text-gray-500 font-semibold">
                           {record.reason || "—"}
                         </td>
                       </tr>

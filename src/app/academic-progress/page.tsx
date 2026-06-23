@@ -102,7 +102,7 @@ function AcademicProgressContent() {
       {/* Header and Quick Stats */}
       <div className="flex justify-between items-center flex-wrap gap-4 border-b border-gray-300 pb-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-800">
+          <h2 className="text-lg sm:text-xl font-extrabold text-gray-800">
             Academic Performance Analysis
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 font-semibold">
@@ -223,22 +223,22 @@ function AcademicProgressContent() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-gray-300 bg-gray-50/20 text-xs font-bold text-gray-500 uppercase select-none">
-                        <th className="py-3 px-6">Subject</th>
-                        <th className="py-3 px-6 text-center">Marks Obtained</th>
-                        <th className="py-3 px-6 text-center">Total Marks</th>
-                        <th className="py-3 px-6 text-center">Grade</th>
-                        <th className="py-3 px-6 text-right">Remarks</th>
+                        <th className="py-3 px-3 sm:px-6">Subject</th>
+                        <th className="py-3 px-3 sm:px-6 text-center">Marks</th>
+                        <th className="py-3 px-3 sm:px-6 text-center">Total</th>
+                        <th className="py-3 px-3 sm:px-6 text-center">Grade</th>
+                        <th className="py-3 px-3 sm:px-6 text-right">Remarks</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-300 text-xs sm:text-sm">
                       {termRecord.subjects.map((subject, subIdx) => (
                         <tr key={subIdx} className="hover:bg-secondary/25 transition-colors">
-                          <td className="py-4 px-6 font-bold text-gray-800">{subject.name}</td>
-                          <td className="py-4 px-6 text-center font-semibold text-gray-900">{subject.marksObtained}</td>
-                          <td className="py-4 px-6 text-center text-gray-500 font-semibold">{subject.totalMarks}</td>
-                          <td className="py-4 px-6 text-center">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 font-bold text-gray-800">{subject.name}</td>
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold text-gray-900">{subject.marksObtained}</td>
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-center text-gray-500 font-semibold">{subject.totalMarks}</td>
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-center">
                             <span className={cn(
-                              "font-bold px-2.5 py-0.5 rounded-full text-xs border",
+                              "font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-xs border",
                               subject.grade.startsWith("A") ? "bg-green-100 text-green-700 border-green-300" :
                               subject.grade.startsWith("B") ? "bg-blue-100 text-blue-700 border-blue-300" :
                               "bg-yellow-100 text-yellow-700 border-yellow-300"
@@ -246,7 +246,7 @@ function AcademicProgressContent() {
                               {subject.grade}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right text-gray-650 font-bold">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-right text-gray-650 font-bold text-xs sm:text-sm">
                             {subject.marksObtained >= 90 ? "Excellent" :
                              subject.marksObtained >= 80 ? "Very Good" :
                              subject.marksObtained >= 70 ? "Good" : "Needs Improvement"}

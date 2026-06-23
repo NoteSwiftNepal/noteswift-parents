@@ -94,7 +94,7 @@ export default function LoginPage() {
           {/* Login Card */}
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl border border-gray-300 rounded-2xl">
             <CardHeader className="text-center pb-2 pt-8 px-6 sm:px-8 space-y-2">
-              <CardTitle className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">Sign in to your account</CardTitle>
+              <CardTitle className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Sign in to your account</CardTitle>
               <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">
                 Sign in to access your NoteSwift parent dashboard.
               </CardDescription>
