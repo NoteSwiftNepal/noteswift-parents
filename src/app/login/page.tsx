@@ -190,15 +190,7 @@ export default function LoginPage() {
           {/* Copyright Watermark */}
           <div className="text-center pt-2">
             <p className="text-xs text-gray-500 font-semibold">
-              © {new Date().getFullYear()} Note Swift. Developed by{" "}
-              <a
-                href="https://codelitsstudio.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold text-gray-600 hover:text-blue-600 transition-colors duration-200"
-              >
-                Codelits Studio
-              </a>
+              © {new Date().getFullYear()} Note Swift. All rights reserved.
             </p>
           </div>
         </div>
