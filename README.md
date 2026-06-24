@@ -68,12 +68,33 @@ This phase does not require an active database server or seeding scripts:
 
 ---
 
-## Demo Credentials
+## Demo Credentials & Simulation Bypass
 
-Use the following credentials to bypass the login screen:
+NoteSwift Parents Portal leverages a passwordless mobile verification flow. To simulate or login during local development:
 
-* **Email**: `reena.sharma@example.com`
-* **Password**: `password123`
+* **Demo Phone Number**: `9841234567`
+* **Demo OTP Bypass Code**: `123456`
+* **Demo Student Linking Code**: `NSP-4X8K-92LQ` (Allows adding student Aarav Sharma to empty parent accounts)
+
+---
+
+## Data Mocking vs. Live Production Toggle
+
+The frontend is built with a dual-mode switch that controls whether it uses in-memory mock data (for quick design feedback) or communicates with real backend APIs.
+
+### Configuration Toggle
+Create a `.env.local` or `.env.production` file at the root of `noteswift-parents/` and specify:
+
+```env
+# Set to false to connect to your live backend server:
+NEXT_PUBLIC_USE_MOCK_DATA=false
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+```
+
+Alternatively, you can manually toggle this inside `src/config/app-config.ts` by editing the boolean export:
+```typescript
+export const USE_MOCK_DATA = false; // Switches all API calls to fetch from production endpoint
+```
 
 ---
 
@@ -84,8 +105,13 @@ To verify typescript typings and check for compilation errors:
 npm run typecheck
 ```
 
+To build a production bundle:
+```bash
+npm run build
+```
+
 ---
 
 ## Phase 2 Integration
 
-For detailed descriptions of the required database updates, user role additions, and API endpoints necessary to connect the parents portal to the unified backend service, see `NOTES_FOR_BACKEND_PHASE.md` in this directory.
+For detailed descriptions of the required database schemas, OTP authentication APIs, student linking code caches, and request/response payloads necessary to build the unified backend, see `NOTES_FOR_BACKEND_PHASE.md` in this directory.

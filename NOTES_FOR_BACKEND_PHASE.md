@@ -1,11 +1,12 @@
-# Spec for Phase 2: Backend Integration
-This document details the database schema modifications, authentication updates, and API endpoints required in `noteswift-backend` during Phase 2 to support the Parent Portal.
+# Spec for Phase 2: Backend Integration (Updated for OTP & Linking Code)
+
+This document details the database schema modifications, OTP authentication flows, and API endpoints required in `noteswift-backend` during Phase 2 to support the Parent Portal.
 
 ---
 
 ## 1. Authentication & Roles Expansion
 
-Currently, the backend auth payload limits roles to `admin`, `student`, and `teacher` in `src/core/types/auth.types.ts`.
+The backend authentication payload needs to support the `parent` role.
 
 ### Required Changes:
 * **Extend `SessionPayload` and `AuthUser` roles**:
@@ -24,19 +25,18 @@ Currently, the backend auth payload limits roles to `admin`, `student`, and `tea
 
 ## 2. Database Models & Schema Extensions
 
-A parent entity needs to be introduced, and links between parents and students must be established.
+A parent entity must be introduced with **no password hash** fields, using temporary OTP logs for authentication, and student linking relationships.
 
 ### A. Parent Schema (`Parent.ts` - New Model)
 ```typescript
 import { Schema, model, Document } from "mongoose";
 
 export interface TParent extends Document {
-  email: string;
+  email?: string;                      // Optional email
   fullName: string;
-  phoneNumber: string;
-  passwordHash: string;
+  phoneNumber: string;                 // Unique key, format: +977-98XXXXXXXX
   avatarEmoji: string;
-  linkedStudents: Schema.Types.ObjectId[]; // Links to Student IDs
+  linkedStudents: Schema.Types.ObjectId[]; // Array of links to Student IDs
   notificationPreferences: {
     emailDigest: boolean;
     smsAlerts: boolean;
@@ -47,11 +47,10 @@ export interface TParent extends Document {
 }
 
 const ParentSchema = new Schema<TParent>({
-  email: { type: String, required: true, unique: true, lowercase: true },
+  email: { type: String, unique: true, sparse: true, lowercase: true },
   fullName: { type: String, required: true },
-  phoneNumber: { type: String, required: true },
-  passwordHash: { type: String, required: true },
-  avatarEmoji: { type: String, default: "RS" },
+  phoneNumber: { type: String, required: true, unique: true },
+  avatarEmoji: { type: String, default: "NP" },
   linkedStudents: [{ type: Schema.Types.ObjectId, ref: "Student" }],
   notificationPreferences: {
     emailDigest: { type: Boolean, default: true },
@@ -63,58 +62,276 @@ const ParentSchema = new Schema<TParent>({
 export const ParentModel = model<TParent>("Parent", ParentSchema);
 ```
 
-### B. Student Schema updates (`Student.ts`)
-* Add a reciprocal field to check linked parent account reference if needed (optional but helpful for querying).
+### B. OTP Verification Schema (`OtpVerification.ts` - New Model)
+Used to track pending log-in and registration attempts.
+```typescript
+import { Schema, model, Document } from "mongoose";
+
+export interface TOtpVerification extends Document {
+  phoneNumber: string;
+  otpCode: string;
+  expiresAt: Date;
+  purpose: "login" | "register";
+  metadata?: {                         // Stores registration details temporarily until OTP is verified
+    fullName?: string;
+    email?: string;
+  };
+  createdAt: Date;
+}
+
+const OtpVerificationSchema = new Schema<TOtpVerification>({
+  phoneNumber: { type: String, required: true },
+  otpCode: { type: String, required: true },
+  expiresAt: { type: Date, required: true, index: { expires: 0 } }, // TTL index auto-deletes expired OTPs
+  purpose: { type: String, enum: ["login", "register"], required: true },
+  metadata: {
+    fullName: { type: String },
+    email: { type: String }
+  }
+}, { timestamps: true });
+
+export const OtpVerificationModel = model<TOtpVerification>("OtpVerification", OtpVerificationSchema);
+```
 
 ---
 
 ## 3. Required API Endpoints
 
-The parent frontend requires the following REST endpoints under a `/api/parent` router.
+### A. Authentication & Account (OTP-Based)
 
-### A. Authentication & Account
-* **`POST /api/parent/auth/login`**
-  * Payload: `{ email, password }`
-  * Action: Validates credentials, signs and returns a JWT token with role `"parent"`.
-* **`GET /api/parent/profile`**
-  * Action: Returns active parent profile information.
-* **`PATCH /api/parent/profile`**
-  * Payload: `{ fullName, phoneNumber }`
-  * Action: Updates parent's contact profile details.
-* **`PATCH /api/parent/settings/notifications`**
-  * Payload: `{ emailDigest, smsAlerts, pushAlerts }`
-  * Action: Updates parent's notification preferences.
+#### **`POST /api/parent/auth/send-otp`**
+* **Request Body**:
+  ```json
+  {
+    "phoneNumber": "+977-9841234567",
+    "purpose": "login" // or "register"
+  }
+  ```
+* **For Registration extra properties**:
+  ```json
+  {
+    "phoneNumber": "+977-9841234567",
+    "purpose": "register",
+    "fullName": "Reena Sharma",
+    "email": "reena@example.com"
+  }
+  ```
+* **Backend logic**:
+  1. Validates the phone format.
+  2. If `purpose === "register"`, verifies that the phone number is not already associated with a Parent account.
+  3. Generates a random 6-digit numeric OTP code.
+  4. Saves to the `OtpVerification` collection (deletes any existing pending OTPs for this number first) with a 5-minute expiry.
+  5. dispatches the OTP via the configured SMS gateway (e.g. Sparrow SMS, Aakash SMS, or Twilio).
 
-### B. Children & Student Context
-* **`GET /api/parent/children`**
-  * Action: Returns basic info of all linked children (Student objects), including roll no, grade, school name, and summary metrics for their current day snapshot:
-    * Classes attended today vs total classes today.
-    * Assignments due count + status.
-    * Daily study hours tracked.
-    * Latest mock test score percentage.
-* **`GET /api/parent/children/:childId/academic`**
-  * Action: Returns term-wise grades history and GPA semester trajectory records.
-* **`GET /api/parent/children/:childId/attendance`**
-  * Action: Returns daily attendance history list (past 30 days) and summary stats (attendance percent, present/absent/late/leave counts).
-* **`GET /api/parent/children/:childId/assignments`**
-  * Action: Returns list of homework assignments, submission status (submitted, pending, late), due dates, and teacher grades/scores.
-* **`GET /api/parent/children/:childId/tests`**
-  * Action: Returns mock tests list, question counts, test dates, and comparison averages with the class average.
+#### **`POST /api/parent/auth/verify-otp`**
+* **Request Body**:
+  ```json
+  {
+    "phoneNumber": "+977-9841234567",
+    "otpCode": "123456"
+  }
+  ```
+* **Backend logic**:
+  1. Checks if a record exists matching the `phoneNumber` and `otpCode` in `OtpVerification`.
+  2. If expired or not found, returns `400 Bad Request`.
+  3. If found and `purpose === "login"`:
+     * Resolves the existing Parent record.
+     * Signs JWT token.
+     * Deletes the verification record.
+  4. If found and `purpose === "register"`:
+     * Creates a new Parent record using the saved registration metadata (`fullName`, `email`, etc.).
+     * Signs JWT token.
+     * Deletes the verification record.
+* **Response**:
+  ```json
+  {
+    "token": "JWT_TOKEN_HERE",
+    "parent": {
+      "id": "parent_id",
+      "fullName": "Reena Sharma",
+      "phoneNumber": "+977-9841234567",
+      "email": "reena@example.com",
+      "avatarEmoji": "RS"
+    },
+    "children": [] // Array of linked children profiles
+  }
+  ```
 
-### C. Communication & Info Center
-* **`GET /api/parent/messages`**
-  * Action: Retrieves a list of chat threads with teachers teaching the linked children.
-* **`POST /api/parent/messages/:threadId`**
-  * Payload: `{ text }`
-  * Action: Appends a parent message to the chat thread and notifies the teacher.
-* **`GET /api/parent/notices`**
-  * Action: Returns active school notice board announcements and term examination schedules.
-* **`GET /api/parent/career-resources`**
-  * Action: Retrieves guidance resources list (articles, career suggestions) relevant to the active child's class category.
+---
 
-### D. Fee & Billing
-* **`GET /api/parent/payments/invoices`**
-  * Action: Retrieves outstanding and settled fee statement records (amount, description, status, due dates).
-* **`POST /api/parent/payments/process`**
-  * Payload: `{ invoiceId, paymentMethod, amount }`
-  * Action: Integrates with Nepalese local payment SDKs (connectIPS, eSewa, or Khalti) to verify signatures, check transaction status, and record payments.
+## 4. Student Linking Code Flows
+
+To link a parent and student securely, the backend will exchange a short-lived link code generated by the student.
+
+```mermaid
+sequenceDiagram
+    participant Student as Student App
+    participant Redis as Redis Cache / DB
+    participant Parent as Parent App
+    Student->>Redis: Generate code NSP-4X8K-92LQ (TTL 10m)
+    Parent->>Redis: Submit code NSP-4X8K-92LQ
+    Redis-->>Parent: Retrieve linked Student Object
+    Parent->>Parent: Map Student to Parent account
+```
+
+### A. Student App Endpoints (Student Dashboard Context)
+
+#### **`POST /api/student/generate-link-code`**
+* **Auth**: Requires Student Bearer Token
+* **Backend Logic**:
+  1. Generates a unique, short-lived alpha-numeric code in the format: `NSP-XXXX-XXXX` (e.g., `NSP-4X8K-92LQ`).
+  2. Stores this key in Redis or database cache:
+     * Key: `student-link:${linkCode}`
+     * Value: `studentId` (Object ID of active student)
+     * TTL: 600 seconds (10 minutes)
+* **Response**:
+  ```json
+  {
+    "linkCode": "NSP-4X8K-92LQ",
+    "expiresInSeconds": 600
+  }
+  ```
+
+### B. Parents Portal Endpoints (Parent Dashboard Context)
+
+#### **`POST /api/parent/link-student`**
+* **Auth**: Requires Parent Bearer Token
+* **Request Body**:
+  ```json
+  {
+    "linkCode": "NSP-4X8K-92LQ"
+  }
+  ```
+* **Backend Logic**:
+  1. Validates the code format.
+  2. Fetches the active value for `student-link:${linkCode}` from cache/Redis.
+  3. If key is expired or not found, returns `400 Bad Request` ("Code expired or invalid").
+  4. Resolves the corresponding `studentId`.
+  5. Verifies if this student is already linked to this parent (checking `tp.linkedStudents`). If yes, returns `400` ("Student already linked").
+  6. Updates the Parent record: pushes `studentId` into the `linkedStudents` array.
+  7. Deletes the link code from cache immediately to prevent reuse.
+* **Response**:
+  ```json
+  {
+    "success": true,
+    "message": "Student linked successfully",
+    "linkedStudent": {
+      "id": "student_id",
+      "fullName": "Aarav Sharma",
+      "rollNo": 12,
+      "grade": "Grade 10 (Section A)"
+    }
+  }
+  ```
+
+---
+
+## 5. Frontend Production-Ready Configuration Toggle
+
+The frontend features a dual-mode integration toggle located in `src/config/app-config.ts`. 
+
+### How it works:
+* **Demo Mode (`USE_MOCK_DATA === true` / Default)**:
+  - The auth context uses static client-side databases (`mockDatabase` in `src/data/mockData.ts`).
+  - No network requests are made.
+  - OTP bypass codes (`123456`) and mock linking codes (`NSP-4X8K-92LQ`) are hardcoded.
+* **Production Mode (`USE_MOCK_DATA === false`)**:
+  - Authentication calls, registration flows, OTP validation, child linking, and settings edits dispatch standard HTTP `fetch()` requests directly to your backend APIs.
+  - You must supply `NEXT_PUBLIC_USE_MOCK_DATA=false` and `NEXT_PUBLIC_API_URL` to configure the gateway.
+
+### Expected Backend API Specifications
+
+The following endpoints are called by the frontend when in Production mode:
+
+#### 1. OTP Sending (`POST /api/parent/auth/send-otp`)
+- **Request Body**:
+  ```json
+  {
+    "phoneNumber": "98XXXXXXXX",
+    "purpose": "login" // or "register",
+    "fullName": "Reena Sharma", // registration only
+    "email": "reena@example.com" // registration only
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+#### 2. OTP Verification (`POST /api/parent/auth/verify-otp`)
+- **Request Body**:
+  ```json
+  {
+    "phoneNumber": "98XXXXXXXX",
+    "otpCode": "123456"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "token": "JWT_TOKEN_HERE",
+    "parent": {
+      "id": "p-12345",
+      "fullName": "Reena Sharma",
+      "phoneNumber": "9841234567",
+      "email": "reena.sharma@example.com",
+      "avatarEmoji": "RS"
+    },
+    "children": [
+      {
+        "id": "c1",
+        "fullName": "Aarav Sharma",
+        "rollNo": 12,
+        "grade": "Grade 10 (Section A)",
+        "avatarEmoji": "AS"
+      }
+    ]
+  }
+  ```
+
+#### 3. Student Linking (`POST /api/parent/link-student`)
+- **Headers**:
+  ```http
+  Authorization: Bearer JWT_TOKEN_HERE
+  ```
+- **Request Body**:
+  ```json
+  {
+    "linkCode": "NSP-4X8K-92LQ"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "linkedStudent": {
+      "id": "c1",
+      "fullName": "Aarav Sharma",
+      "rollNo": 12,
+      "grade": "Grade 10 (Section A)",
+      "avatarEmoji": "AS"
+    }
+  }
+  ```
+
+#### 4. Profile Modification (`PUT /api/parent/profile`)
+- **Headers**:
+  ```http
+  Authorization: Bearer JWT_TOKEN_HERE
+  ```
+- **Request Body**:
+  ```json
+  {
+    "fullName": "Reena Sharma",
+    "phoneNumber": "9841234567"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true
+  }
+  ```
+

@@ -1,64 +1,179 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Phone, User, Mail, ShieldCheck, ArrowRight, Loader2, ArrowLeft, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LoginGuard } from "@/components/auth-guard";
 import { useParentAuth } from "@/context/parent-auth-context";
+import { USE_MOCK_DATA } from "@/config/app-config";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useParentAuth();
-  
-  // Pre-fill demo credentials by default
-  const [email, setEmail] = useState("reena.sharma@example.com");
-  const [password, setPassword] = useState("password123");
-  const [showPassword, setShowPassword] = useState(false);
+  const { loginWithPhone, registerWithPhone, verifyOtp } = useParentAuth();
+
+  // Authentication UI Steps: "input" | "otp"
+  const [authStep, setAuthStep] = useState<"input" | "otp">("input");
+  const [activeTab, setActiveTab] = useState<string>("signin");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Input states
+  const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState("");
+
+  // Resend OTP timer
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  // Clean phone number input (digits only)
+  const handlePhoneChange = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 10);
+    setPhone(digits);
+  };
+
+  // 1. Handle sending OTP for Sign In
+  const handleSendLoginOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (phone.length < 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
     setIsLoading(true);
-
     try {
-      // Simulate authentication check delay so the user sees the spinner loader
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const fullPhoneNumber = `+977-${phone}`;
+      const result = await loginWithPhone(fullPhoneNumber);
 
-      const result = await login(email, password);
-
-      if (!result.success) {
-        setError(result.message || "Login failed");
+      if (result.success) {
         toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: result.message || "Invalid credentials.",
+          title: "Verification Code Sent",
+          description: `OTP code sent to ${fullPhoneNumber}. (Demo code: 123456)`,
         });
-        return;
+        setAuthStep("otp");
+        setResendTimer(60);
+      } else {
+        setError(result.message || "Failed to send verification code.");
       }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      toast({
-        title: "Login Successful",
-        description: "Welcome to NoteSwift Parents Portal!",
-      });
+  // 2. Handle sending OTP for Registration
+  const handleSendRegisterOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-      router.push('/dashboard');
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError("An unexpected error occurred. Please try again.");
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred.",
-      });
+    if (!fullName.trim()) {
+      setError("Full Name is required.");
+      return;
+    }
+    if (phone.length < 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!agreeTerms) {
+      setError("You must agree to the Terms of Service & Privacy Policy.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fullPhoneNumber = `+977-${phone}`;
+      const result = await registerWithPhone(fullName, fullPhoneNumber, email, agreeTerms);
+
+      if (result.success) {
+        toast({
+          title: "Registration Verification",
+          description: `OTP code sent to ${fullPhoneNumber}. (Demo code: 123456)`,
+        });
+        setAuthStep("otp");
+        setResendTimer(60);
+      } else {
+        setError(result.message || "Registration failed.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. Handle verifying OTP code
+  const handleVerifyOtpCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (otpCode.length < 6) {
+      setError("Please enter the 6-digit code.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await verifyOtp(otpCode);
+      if (result.success) {
+        toast({
+          title: "Authenticated Successfully",
+          description: "Welcome to NoteSwift!",
+        });
+        router.push("/dashboard");
+      } else {
+        setError(result.message || "Invalid OTP code.");
+      }
+    } catch (err) {
+      setError("Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setError("");
+    setIsLoading(true);
+    try {
+      const fullPhoneNumber = `+977-${phone}`;
+      const result = activeTab === "signin" 
+        ? await loginWithPhone(fullPhoneNumber)
+        : await registerWithPhone(fullName, fullPhoneNumber, email, agreeTerms);
+
+      if (result.success) {
+        toast({
+          title: "OTP Resent",
+          description: `New OTP sent to ${fullPhoneNumber}. (Demo code: 123456)`,
+        });
+        setResendTimer(60);
+        setOtpCode("");
+      } else {
+        setError(result.message || "Failed to resend OTP.");
+      }
+    } catch (err) {
+      setError("Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -68,131 +183,316 @@ export default function LoginPage() {
     <LoginGuard>
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50 py-12 px-4 sm:px-6">
         {/* Decorative Geometric Elements */}
-        {/* Top-left corner - Line box (half rectangle outline) */}
-        <div className="hidden md:block absolute top-0 left-0 w-48 h-48 md:w-72 md:h-72 border-[8px] md:border-[12px] border-blue-200/50 rounded-br-[80px] md:rounded-br-[120px]"></div>
-        
-        {/* Bottom-right corner - Filled box */}
-        <div className="hidden md:block absolute bottom-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tl from-blue-200/40 to-blue-100/20 rounded-tl-[100px] md:rounded-tl-[140px]"></div>
-        
-        {/* Additional subtle decorative elements */}
-        <div className="hidden lg:block absolute top-32 right-32 w-48 h-48 border-[6px] border-blue-100/40 rounded-full"></div>
-        <div className="hidden lg:block absolute bottom-40 left-40 w-40 h-40 bg-blue-100/30 rounded-2xl rotate-12"></div>
+        <div className="hidden md:block absolute top-0 left-0 w-48 h-48 md:w-72 md:h-72 border-[8px] md:border-[12px] border-blue-200/40 rounded-br-[80px] md:rounded-br-[120px]"></div>
+        <div className="hidden md:block absolute bottom-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tl from-blue-200/30 to-blue-100/10 rounded-tl-[100px] md:rounded-tl-[140px]"></div>
 
-        {/* Centered Login Container */}
-        <div className="relative z-10 w-full max-w-[440px] space-y-8">
+        {/* Auth Container */}
+        <div className="relative z-10 w-full max-w-[390px] space-y-6">
+          
           {/* Logo & Branding */}
-          <div className="flex flex-col items-center justify-center space-y-3 text-center">
+          <div className="flex flex-col items-center justify-center space-y-2 text-center">
             <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-300">
-              <Image src="/assets/logo.png" alt="NoteSwift Logo" width={60} height={60} className="object-contain" />
+              <Image src="/assets/logo.png" alt="NoteSwift Logo" width={56} height={56} className="object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 tracking-tight">Parent's Portal</h1>
-              <p className="text-xs sm:text-sm text-gray-500 font-semibold mt-1 px-4">Keep track of your child's academic journey and stay connected.</p>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-800 tracking-tight">Parent's Portal</h1>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5 px-4">Keep track of your child's academic journey and stay connected.</p>
             </div>
           </div>
 
-          {/* Login Card */}
-          <Card className="bg-white/95 backdrop-blur-sm shadow-xl border border-gray-300 rounded-2xl">
-            <CardHeader className="text-center pb-2 pt-8 px-6 sm:px-8 space-y-2">
-              <CardTitle className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Sign in to your account</CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">
-                Sign in to access your NoteSwift parent dashboard.
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="pb-8 px-6 sm:px-8">
-              <form onSubmit={handleLogin} className="space-y-6">
-                
-                {/* Email Address Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-bold text-gray-700">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                    className="h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs sm:text-sm"
-                  />
-                </div>
-                
-                {/* Password Input */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs font-bold text-gray-700">Password</Label>
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
-                      onClick={() => {
-                        toast({
-                          title: "Forgot Password",
-                          description: "Password reset instructions would be sent to your email. (Demo only)",
-                        });
-                      }}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoComplete="current-password"
-                      className="h-12 pr-10 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs sm:text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                    </button>
-                  </div>
-                </div>
+          <Card className="bg-white/95 backdrop-blur-sm shadow-xl border border-gray-300 rounded-2xl overflow-hidden">
+            {authStep === "input" ? (
+              // Step 1: Login / Register Input Form
+              <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setError(""); }} className="w-full">
+                <TabsList className="grid grid-cols-2 w-full h-12 bg-gray-50 border-b border-gray-200 rounded-none p-0">
+                  <TabsTrigger 
+                    value="signin" 
+                    className="h-full rounded-none font-bold text-xs sm:text-sm border-r border-gray-200 data-[state=active]:bg-white data-[state=active]:text-blue-600 transition-all"
+                  >
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="register" 
+                    className="h-full rounded-none font-bold text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-600 transition-all"
+                  >
+                    Create Account
+                  </TabsTrigger>
+                </TabsList>
 
-                {/* Demo Credentials Info Note */}
-                <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 text-xs text-blue-700 space-y-1.5">
-                  <p className="font-bold flex items-center gap-1">
-                    <span>💡</span> Demo Login Credentials (Prefilled)
-                  </p>
-                  <p className="font-mono bg-white/60 p-2 rounded-lg border border-blue-100 leading-relaxed text-[11px] font-semibold">
-                    Email: reena.sharma@example.com <br />
-                    Password: password123
-                  </p>
-                </div>
+                {/* SIGN IN TAB CONTENT */}
+                <TabsContent value="signin" className="p-6 sm:p-8 pt-6 focus-visible:outline-none">
+                  <CardHeader className="p-0 pb-4 text-center">
+                    <CardTitle className="text-lg sm:text-xl font-extrabold text-gray-900">Sign in with Mobile</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">
+                      Enter your mobile number to receive a secure login OTP.
+                    </CardDescription>
+                  </CardHeader>
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                    <p className="text-xs font-bold text-red-600 flex items-center gap-2">
-                      <span className="text-red-500">⚠</span> {error}
-                    </p>
-                  </div>
-                )}
-                
-                <Button 
-                  type="submit" 
-                  className="w-full font-bold text-xs sm:text-sm h-12 bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl border border-blue-600" 
-                  disabled={isLoading}
+                  <form onSubmit={handleSendLoginOtp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="loginPhone" className="text-xs sm:text-sm font-bold text-gray-700">Mobile Number</Label>
+                      <div className="relative flex">
+                        <span className="inline-flex items-center px-3.5 rounded-l-xl border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm font-bold select-none">
+                          +977
+                        </span>
+                        <Input
+                          id="loginPhone"
+                          type="tel"
+                          placeholder="98XXXXXXXX"
+                          value={phone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          required
+                          className="rounded-l-none rounded-r-xl h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm sm:text-base font-semibold tracking-wide pl-3"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Demo Assist */}
+                    {USE_MOCK_DATA && (
+                      <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 text-xs sm:text-sm text-blue-700 space-y-1.5">
+                        <p className="font-bold flex items-center gap-1">
+                          <span>💡</span> Nepal Demo Number (Includes Student data)
+                        </p>
+                        <p className="font-mono bg-white/60 p-2 rounded-lg border border-blue-100 leading-none text-xs font-semibold">
+                          Phone: 9841234567
+                        </p>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                        <p className="text-xs sm:text-sm font-bold text-red-655 flex items-center gap-2">
+                          <span>⚠️</span> {error}
+                        </p>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full font-bold text-sm sm:text-base h-12 bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl border border-blue-600 flex items-center justify-center gap-2"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          Sending OTP...
+                        </>
+                      ) : (
+                        <>
+                          Send OTP Code
+                          <ArrowRight className="h-4.5 w-4.5" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                {/* REGISTER TAB CONTENT */}
+                <TabsContent value="register" className="p-6 sm:p-8 pt-6 focus-visible:outline-none">
+                  <CardHeader className="p-0 pb-4 text-center">
+                    <CardTitle className="text-lg sm:text-xl font-extrabold text-gray-900">Parent Registration</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">
+                      Create an account to start tracking your child's progress.
+                    </CardDescription>
+                  </CardHeader>
+
+                  <form onSubmit={handleSendRegisterOtp} className="space-y-4">
+                    {/* Full Name */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="regName" className="text-xs sm:text-sm font-bold text-gray-700">Full Name *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="regName"
+                          placeholder="e.g. Reena Sharma"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          required
+                          className="h-11 pl-9 border-gray-300 focus:border-blue-500 rounded-xl text-sm sm:text-base font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Mobile Number */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="regPhone" className="text-xs sm:text-sm font-bold text-gray-700">Mobile Number *</Label>
+                      <div className="relative flex">
+                        <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm font-bold select-none">
+                          +977
+                        </span>
+                        <Input
+                          id="regPhone"
+                          type="tel"
+                          placeholder="98XXXXXXXX"
+                          value={phone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          required
+                          className="rounded-l-none rounded-r-xl h-11 border-gray-300 focus:border-blue-500 text-sm sm:text-base font-semibold pl-3"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email (Optional) */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="regEmail" className="text-xs sm:text-sm font-bold text-gray-700">Email Address (Optional)</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="regEmail"
+                          type="email"
+                          placeholder="yourname@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-11 pl-9 border-gray-300 focus:border-blue-500 rounded-xl text-sm sm:text-base font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Terms and Privacy Checkbox */}
+                    <div className="flex items-start gap-2.5 pt-1.5">
+                      <Checkbox 
+                        id="terms" 
+                        checked={agreeTerms} 
+                        onCheckedChange={(checked) => setAgreeTerms(checked === true)}
+                        className="mt-0.5 border-gray-450 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600 rounded"
+                      />
+                      <Label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 font-semibold leading-snug cursor-pointer select-none">
+                        I agree to the <span className="text-blue-600 hover:underline">Terms of Service</span> and <span className="text-blue-600 hover:underline">Privacy Policy</span>.
+                      </Label>
+                    </div>
+
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                        <p className="text-xs sm:text-sm font-bold text-red-655 flex items-center gap-2">
+                          <span>⚠️</span> {error}
+                        </p>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full font-bold text-sm sm:text-base h-12 bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl border border-blue-600 flex items-center justify-center gap-2"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          Registering...
+                        </>
+                      ) : (
+                        <>
+                          Register & Send OTP
+                          <ArrowRight className="h-4.5 w-4.5" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              // Step 2: OTP Verification screen
+              <div className="p-6 sm:p-8 space-y-6">
+                <button
+                  onClick={() => { setAuthStep("input"); setError(""); }}
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 hover:text-gray-700 transition-colors font-bold"
                 >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />}
-                  {isLoading ? "Signing In..." : "Sign In"}
-                </Button>
-              </form>
-            </CardContent>
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back / Edit Number
+                </button>
+
+                <div className="text-center space-y-1.5">
+                  <div className="inline-flex p-3 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-gray-900">OTP Verification</h2>
+                  <p className="text-xs sm:text-sm text-gray-500 font-semibold px-4">
+                    Enter the 6-digit authentication code sent to <span className="font-extrabold text-gray-850">+977-{phone}</span>.
+                  </p>
+                </div>
+
+                <form onSubmit={handleVerifyOtpCode} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="otpVal" className="text-xs sm:text-sm font-bold text-gray-700">Enter Verification Code</Label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="otpVal"
+                        type="text"
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        required
+                        className="h-12 pl-9 text-center text-sm sm:text-base font-extrabold tracking-[0.4em] border-gray-300 focus:border-blue-500 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Resend Helper */}
+                  <div className="flex justify-between items-center text-xs sm:text-sm font-bold">
+                    <span className="text-gray-500">Didn't receive code?</span>
+                    {resendTimer > 0 ? (
+                      <span className="text-gray-450">Resend in {resendTimer}s</span>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={handleResendOtp}
+                        className="text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
+
+                   {/* OTP Helper Dialog */}
+                   {USE_MOCK_DATA && (
+                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3.5 text-xs sm:text-sm text-yellow-700 space-y-1">
+                       <p className="font-bold flex items-center gap-1">
+                         <span>🔑</span> Demo OTP Code
+                       </p>
+                       <p className="font-semibold text-gray-700 leading-normal">
+                         Enter code <span className="font-extrabold font-mono bg-white px-1.5 py-0.5 rounded border border-yellow-300 text-yellow-805">123456</span> to complete authentication bypass.
+                       </p>
+                     </div>
+                   )}
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-xs sm:text-sm font-bold text-red-655 flex items-center gap-2">
+                        <span>⚠️</span> {error}
+                      </p>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full font-bold text-sm sm:text-base h-12 bg-blue-500 hover:bg-blue-650 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl border border-blue-600 flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        Verifying Code...
+                      </>
+                    ) : (
+                      <>
+                        Verify & Login
+                        <ArrowRight className="h-4.5 w-4.5" />
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </div>
+            )}
           </Card>
 
-          {/* Copyright Watermark */}
-          <div className="text-center pt-2">
+          {/* Copyright Info */}
+          <div className="text-center">
             <p className="text-xs text-gray-500 font-semibold">
               © {new Date().getFullYear()} Note Swift. All rights reserved.
             </p>
           </div>
+
         </div>
       </main>
     </LoginGuard>

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockDatabase, ParentProfile, ChildData } from '@/data/mockData';
+import { USE_MOCK_DATA, API_BASE_URL } from '@/config/app-config';
 
 interface ParentAuthContextType {
   parent: ParentProfile | null;
@@ -13,6 +14,10 @@ interface ParentAuthContextType {
   error: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithPhone: (phoneNumber: string) => Promise<{ success: boolean; otp?: string; message?: string }>;
+  verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string }>;
+  registerWithPhone: (fullName: string, phoneNumber: string, email?: string, acceptTerms?: boolean) => Promise<{ success: boolean; otp?: string; message?: string }>;
+  linkStudent: (code: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (fullName: string, phoneNumber: string) => Promise<{ success: boolean }>;
 }
@@ -22,11 +27,15 @@ const ParentAuthContext = createContext<ParentAuthContextType | undefined>(undef
 export function ParentAuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [parent, setParent] = useState<ParentProfile | null>(null);
+  const [linkedChildren, setLinkedChildren] = useState<ChildData[]>([]);
   const [activeChild, setActiveChildState] = useState<ChildData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const childrenList = mockDatabase.children;
+  // Temporary state during login/register OTP verification flows
+  const [pendingPhone, setPendingPhone] = useState<string>('');
+  const [pendingRegData, setPendingRegData] = useState<{ fullName: string; email?: string } | null>(null);
+  const [generatedOtp, setGeneratedOtp] = useState<string>('');
 
   const setActiveChild = (child: ChildData) => {
     setActiveChildState(child);
@@ -40,14 +49,42 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
       if (!token) {
         setParent(null);
         setActiveChildState(null);
+        setLinkedChildren([]);
         return;
       }
 
-      // Populate local state from mock database
-      setParent(mockDatabase.parent);
+      // Populate local state from mock database or stored state
+      const savedParent = localStorage.getItem('parentProfile');
+      if (savedParent) {
+        setParent(JSON.parse(savedParent));
+      } else {
+        if (USE_MOCK_DATA) {
+          setParent(mockDatabase.parent);
+        } else {
+          setParent(null);
+        }
+      }
+      
+      const savedChildren = localStorage.getItem('parentChildren');
+      let currentChildren: ChildData[] = [];
+      if (savedChildren) {
+        currentChildren = JSON.parse(savedChildren);
+      } else {
+        if (USE_MOCK_DATA) {
+          const parentPhone = localStorage.getItem('parentPhone');
+          if (parentPhone === mockDatabase.parent.phoneNumber || parentPhone === '9841234567' || !parentPhone) {
+            currentChildren = mockDatabase.children;
+          } else {
+            currentChildren = [];
+          }
+        } else {
+          currentChildren = [];
+        }
+      }
+      setLinkedChildren(currentChildren);
       
       const savedChildId = localStorage.getItem('activeChildId');
-      const active = childrenList.find(c => c.id === savedChildId) || childrenList[0];
+      const active = currentChildren.find(c => c.id === savedChildId) || currentChildren[0];
       setActiveChildState(active || null);
     } catch (err) {
       console.error('Parent auth check error:', err);
@@ -58,27 +95,27 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    // Keep login function for backward compatibility
     try {
       setLoading(true);
       setError(null);
-
-      // Simple mock check
       if (email.toLowerCase() === mockDatabase.parent.email.toLowerCase() && password === 'password123') {
         localStorage.setItem('parentToken', 'mock-parent-jwt-token-12345');
         localStorage.setItem('parentId', mockDatabase.parent.id);
         localStorage.setItem('parentEmail', mockDatabase.parent.email);
+        localStorage.setItem('parentPhone', mockDatabase.parent.phoneNumber);
+        localStorage.setItem('parentProfile', JSON.stringify(mockDatabase.parent));
+        localStorage.setItem('parentChildren', JSON.stringify(mockDatabase.children));
         localStorage.setItem('isAuthenticated', 'true');
         
         setParent(mockDatabase.parent);
-        const defaultChild = childrenList[0];
-        setActiveChildState(defaultChild || null);
-        if (defaultChild) {
-          localStorage.setItem('activeChildId', defaultChild.id);
-        }
+        setLinkedChildren(mockDatabase.children);
+        setActiveChildState(mockDatabase.children[0]);
+        localStorage.setItem('activeChildId', mockDatabase.children[0].id);
 
         return { success: true };
       } else {
-        return { success: false, message: 'Invalid email or password. Use demo credentials: reena.sharma@example.com / password123' };
+        return { success: false, message: 'Invalid email or password.' };
       }
     } catch (error: any) {
       console.error('Parent login error:', error);
@@ -88,27 +125,277 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithPhone = async (phoneNumber: string): Promise<{ success: boolean; otp?: string; message?: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!USE_MOCK_DATA) {
+        const response = await fetch(`${API_BASE_URL}/parent/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber, purpose: 'login' })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, message: data.message || 'Failed to send OTP' };
+        }
+        setPendingPhone(phoneNumber);
+        setPendingRegData(null);
+        return { success: true };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const otp = '123456';
+      setGeneratedOtp(otp);
+      setPendingPhone(phoneNumber);
+      setPendingRegData(null);
+      
+      return { success: true, otp };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to send OTP' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWithPhone = async (fullName: string, phoneNumber: string, email?: string, acceptTerms?: boolean): Promise<{ success: boolean; otp?: string; message?: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!acceptTerms) {
+        return { success: false, message: 'You must accept the Terms and Conditions' };
+      }
+
+      if (!USE_MOCK_DATA) {
+        const response = await fetch(`${API_BASE_URL}/parent/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber, purpose: 'register', fullName, email })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, message: data.message || 'Failed to send OTP' };
+        }
+        setPendingPhone(phoneNumber);
+        setPendingRegData({ fullName, email });
+        return { success: true };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const otp = '123456';
+      setGeneratedOtp(otp);
+      setPendingPhone(phoneNumber);
+      setPendingRegData({ fullName, email });
+      
+      return { success: true, otp };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to send OTP' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (otp: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!USE_MOCK_DATA) {
+        const response = await fetch(`${API_BASE_URL}/parent/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: pendingPhone, otpCode: otp })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, message: data.message || 'Verification failed' };
+        }
+
+        localStorage.setItem('parentToken', data.token);
+        localStorage.setItem('parentPhone', pendingPhone);
+        localStorage.setItem('parentProfile', JSON.stringify(data.parent));
+        localStorage.setItem('parentChildren', JSON.stringify(data.children || []));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        setParent(data.parent);
+        setLinkedChildren(data.children || []);
+        if (data.children && data.children.length > 0) {
+          localStorage.setItem('activeChildId', data.children[0].id);
+          setActiveChildState(data.children[0]);
+        } else {
+          setActiveChildState(null);
+        }
+        return { success: true };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (otp !== generatedOtp && otp !== '123456') {
+        return { success: false, message: 'Invalid OTP code. Enter 123456 for demo.' };
+      }
+      
+      localStorage.setItem('parentToken', 'mock-parent-jwt-token-12345');
+      localStorage.setItem('parentPhone', pendingPhone);
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      if (pendingRegData) {
+        const newParent: ParentProfile = {
+          id: `p-${Date.now()}`,
+          email: pendingRegData.email || '',
+          fullName: pendingRegData.fullName,
+          phoneNumber: pendingPhone,
+          avatarEmoji: pendingRegData.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'P'
+        };
+        localStorage.setItem('parentProfile', JSON.stringify(newParent));
+        localStorage.setItem('parentChildren', JSON.stringify([]));
+        
+        setParent(newParent);
+        setLinkedChildren([]);
+        setActiveChildState(null);
+      } else {
+        const isDemoProfile = pendingPhone.includes('9841234567') || pendingPhone === '9841234567';
+        if (isDemoProfile) {
+          localStorage.setItem('parentProfile', JSON.stringify(mockDatabase.parent));
+          localStorage.setItem('parentChildren', JSON.stringify(mockDatabase.children));
+          localStorage.setItem('activeChildId', mockDatabase.children[0].id);
+          
+          setParent(mockDatabase.parent);
+          setLinkedChildren(mockDatabase.children);
+          setActiveChildState(mockDatabase.children[0]);
+        } else {
+          const newParent: ParentProfile = {
+            id: `p-${Date.now()}`,
+            email: '',
+            fullName: 'NoteSwift Parent',
+            phoneNumber: pendingPhone,
+            avatarEmoji: 'NP'
+          };
+          localStorage.setItem('parentProfile', JSON.stringify(newParent));
+          localStorage.setItem('parentChildren', JSON.stringify([]));
+          
+          setParent(newParent);
+          setLinkedChildren([]);
+          setActiveChildState(null);
+        }
+      }
+      
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Verification failed' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const linkStudent = async (code: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      setLoading(true);
+
+      if (!USE_MOCK_DATA) {
+        const token = localStorage.getItem('parentToken');
+        const response = await fetch(`${API_BASE_URL}/parent/link-student`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ linkCode: code })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, message: data.message || 'Failed to link student' };
+        }
+        
+        const newChild = data.linkedStudent;
+        const updatedChildren = [...linkedChildren, newChild];
+        localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
+        localStorage.setItem('activeChildId', newChild.id);
+        
+        setLinkedChildren(updatedChildren);
+        setActiveChildState(newChild);
+        return { success: true };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      const cleanCode = code.trim().toUpperCase();
+      const pattern = /^NSP-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+      if (!pattern.test(cleanCode)) {
+        return { success: false, message: 'Invalid code format. Code must match NSP-XXXX-XXXX (e.g. NSP-4X8K-92LQ)' };
+      }
+      
+      const hasAarav = linkedChildren.some(c => c.id === 'c1');
+      const studentToLink = hasAarav ? mockDatabase.children[1] : mockDatabase.children[0];
+      
+      if (linkedChildren.some(c => c.id === studentToLink.id)) {
+        return { success: false, message: `Student ${studentToLink.fullName} is already linked.` };
+      }
+      
+      const updatedChildren = [...linkedChildren, studentToLink];
+      localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
+      localStorage.setItem('activeChildId', studentToLink.id);
+      
+      setLinkedChildren(updatedChildren);
+      setActiveChildState(studentToLink);
+      
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to link student. Try again.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('parentToken');
     localStorage.removeItem('parentId');
     localStorage.removeItem('parentEmail');
+    localStorage.removeItem('parentPhone');
+    localStorage.removeItem('parentProfile');
+    localStorage.removeItem('parentChildren');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('activeChildId');
     setParent(null);
+    setLinkedChildren([]);
     setActiveChildState(null);
     setError(null);
     router.push('/login');
   };
 
   const updateProfile = async (fullName: string, phoneNumber: string): Promise<{ success: boolean }> => {
-    if (parent) {
+    try {
+      if (!parent) return { success: false };
+
+      if (!USE_MOCK_DATA) {
+        const token = localStorage.getItem('parentToken');
+        const response = await fetch(`${API_BASE_URL}/parent/profile`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ fullName, phoneNumber })
+        });
+        if (!response.ok) return { success: false };
+        
+        const updatedParent = { ...parent, fullName, phoneNumber };
+        setParent(updatedParent);
+        localStorage.setItem('parentProfile', JSON.stringify(updatedParent));
+        return { success: true };
+      }
+
       const updatedParent = { ...parent, fullName, phoneNumber };
       setParent(updatedParent);
       mockDatabase.parent.fullName = fullName;
       mockDatabase.parent.phoneNumber = phoneNumber;
+      localStorage.setItem('parentProfile', JSON.stringify(updatedParent));
       return { success: true };
+    } catch (err) {
+      return { success: false };
     }
-    return { success: false };
   };
 
   useEffect(() => {
@@ -119,13 +406,17 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
 
   const value: ParentAuthContextType = {
     parent,
-    children: childrenList,
+    children: linkedChildren,
     activeChild,
     setActiveChild,
     loading,
     error,
     isAuthenticated,
     login,
+    loginWithPhone,
+    verifyOtp,
+    registerWithPhone,
+    linkStudent,
     logout,
     updateProfile
   };

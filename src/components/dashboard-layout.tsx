@@ -20,7 +20,8 @@ import {
   User,
   Globe,
   Loader2,
-  Calendar
+  Calendar,
+  Lock
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -179,34 +180,55 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
 
           <SidebarContent className="px-4 py-6 space-y-6">
-            {navSections.map((section, idx) => (
-              <div key={idx} className="space-y-2">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3">
-                  {section.title}
-                </h3>
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => handleLinkClick(item.href)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-xs sm:text-sm font-bold",
-                          isActive
-                            ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md hover:shadow-lg"
-                            : "text-foreground/80 hover:bg-secondary/80 hover:text-foreground"
-                        )}
-                      >
-                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-gray-500")} />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
+            {navSections.map((section, idx) => {
+              const hasLinkedChildren = linkedChildren && linkedChildren.length > 0;
+              return (
+                <div key={idx} className="space-y-2">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3">
+                    {section.title}
+                  </h3>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                      const isAccessible = item.href === "/dashboard" || item.href === "/settings" || hasLinkedChildren;
+                      
+                      if (!isAccessible) {
+                        return (
+                          <div
+                            key={item.href}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-400 cursor-not-allowed text-xs sm:text-sm font-bold opacity-50 select-none"
+                            title="Please link a student profile to access this section."
+                          >
+                            <div className="flex items-center gap-3">
+                              <item.icon className="w-5 h-5 text-gray-400" />
+                              <span>{item.label}</span>
+                            </div>
+                            <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => handleLinkClick(item.href)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-xs sm:text-sm font-bold",
+                            isActive
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md hover:shadow-lg"
+                              : "text-foreground/80 hover:bg-secondary/80 hover:text-foreground"
+                          )}
+                        >
+                          <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-gray-500")} />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </SidebarContent>
 
           {/* SIDEBAR FOOTER */}

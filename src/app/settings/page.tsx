@@ -4,21 +4,56 @@ import React, { useState } from "react";
 import { useParentAuth } from "@/context/parent-auth-context";
 import { DashboardGuard } from "@/components/auth-guard";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { USE_MOCK_DATA } from "@/config/app-config";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { User, Bell, Shield, Loader2, Check } from "lucide-react";
+import { User, Bell, Shield, Loader2, Check, GraduationCap } from "lucide-react";
 
 function SettingsContent() {
-  const { parent, updateProfile } = useParentAuth();
+  const { parent, children: linkedChildren, updateProfile, linkStudent } = useParentAuth();
   const { toast } = useToast();
 
   const [fullName, setFullName] = useState(parent?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState(parent?.phoneNumber || "");
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Link child state
+  const [linkCode, setLinkCode] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+
+  const handleLinkStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkError("");
+    
+    if (!linkCode.trim()) {
+      setLinkError("Please enter a linking code.");
+      return;
+    }
+    
+    setIsLinking(true);
+    try {
+      const result = await linkStudent(linkCode);
+      setIsLinking(false);
+      
+      if (result.success) {
+        toast({
+          title: "Student Linked",
+          description: "Student profile has been linked to your account successfully.",
+        });
+        setLinkCode("");
+      } else {
+        setLinkError(result.message || "Failed to link student profile.");
+      }
+    } catch (err) {
+      setIsLinking(false);
+      setLinkError("An error occurred. Please try again.");
+    }
+  };
 
   // Notification states
   const [emailDigest, setEmailDigest] = useState(true);
@@ -139,6 +174,96 @@ function SettingsContent() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Linked Students Card */}
+          <Card className="border-gray-300 shadow-sm bg-white">
+            <CardHeader className="border-b border-gray-300 pb-4">
+              <CardTitle className="text-base font-bold text-gray-800 flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-blue-500" />
+                Linked Student Profiles
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">
+                Manage linked child profiles or register a new student using their linking code.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              {/* Linked Students List */}
+              <div className="space-y-3">
+                <Label className="text-xs font-bold text-gray-700">Currently Linked Students</Label>
+                {linkedChildren && linkedChildren.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {linkedChildren.map((child) => (
+                      <div 
+                        key={child.id} 
+                        className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-300 bg-secondary/10"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200">
+                          {child.avatarEmoji}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-800 leading-tight">{child.fullName}</span>
+                          <span className="text-[10px] text-gray-500 font-bold">{child.grade}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center text-xs text-gray-500 font-bold">
+                    No student profiles linked to this account yet.
+                  </div>
+                )}
+              </div>
+
+              {/* Link Form */}
+              <div className="border-t border-gray-200 pt-5 space-y-4">
+                <h4 className="text-xs font-bold text-gray-800">Link Another Student</h4>
+                <form onSubmit={handleLinkStudent} className="flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full space-y-2">
+                    <Label htmlFor="linkCodeInput" className="text-[11px] font-bold text-gray-700">Parent Linking Code</Label>
+                    <Input
+                      id="linkCodeInput"
+                      placeholder="NSP-XXXX-XXXX"
+                      value={linkCode}
+                      onChange={(e) => setLinkCode(e.target.value)}
+                      className="h-11 border-gray-300 uppercase tracking-wider text-xs sm:text-sm rounded-xl focus:border-blue-500"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={isLinking}
+                    className="h-11 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs sm:text-sm px-5 shrink-0 border border-blue-600 w-full sm:w-auto"
+                  >
+                    {isLinking ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        Linking...
+                      </>
+                    ) : (
+                      "Link Student"
+                    )}
+                  </Button>
+                </form>
+
+                {/* Demo Assist */}
+                {USE_MOCK_DATA && (
+                  <div className="bg-yellow-50/70 border border-yellow-200 rounded-xl p-3.5 text-xs text-yellow-750 font-medium">
+                    <p className="font-bold flex items-center gap-1 mb-0.5">
+                      <span>💡</span> Demo Student Linking Code
+                    </p>
+                    <span>
+                      Use code <span className="font-mono font-extrabold bg-white px-1.5 py-0.5 rounded border border-yellow-300 text-yellow-805">NSP-4X8K-92LQ</span> to link.
+                    </span>
+                  </div>
+                )}
+
+                {linkError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs font-bold text-red-650">
+                    ⚠️ {linkError}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

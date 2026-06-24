@@ -1,12 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useParentAuth } from "@/context/parent-auth-context";
 import { DashboardGuard } from "@/components/auth-guard";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { USE_MOCK_DATA } from "@/config/app-config";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   BookOpen, 
   Clock, 
@@ -21,14 +25,153 @@ import {
   CalendarDays,
   UserCheck,
   Loader2,
-  BrainCircuit
+  BrainCircuit,
+  GraduationCap
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { mockDatabase } from "@/data/mockData";
+import { useToast } from "@/hooks/use-toast";
 
 function DashboardContent() {
-  const { parent, activeChild } = useParentAuth();
+  const { parent, children, activeChild, linkStudent } = useParentAuth();
+  const [linkingCode, setLinkingCode] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const { toast } = useToast();
+
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkError("");
+    
+    if (!linkingCode.trim()) {
+      setLinkError("Please enter a linking code.");
+      return;
+    }
+    
+    setIsLinking(true);
+    try {
+      const result = await linkStudent(linkingCode);
+      if (result.success) {
+        toast({
+          title: "Student Linked Successfully",
+          description: "You can now track academic progress, attendance, and fee payments.",
+        });
+      } else {
+        setLinkError(result.message || "Failed to link student profile.");
+      }
+    } catch (err) {
+      setLinkError("An error occurred. Please try again.");
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  if (!children || children.length === 0) {
+    return (
+      <div className="max-w-xl mx-auto py-12 px-4 space-y-8">
+        {/* Onboarding Welcome Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex p-4 rounded-full bg-blue-50 text-blue-600 border border-blue-150 shadow-sm">
+            <GraduationCap className="h-10 w-10" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 tracking-tight">
+            Welcome to NoteSwift Parents Portal
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 font-semibold max-w-md mx-auto">
+            Your parent account is ready. To access transcripts, schedules, and billing, please link your child's profile.
+          </p>
+        </div>
+
+        {/* Link Card instructions */}
+        <Card className="border-gray-300 shadow-lg bg-white rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gray-50/50 border-b border-gray-200 p-6">
+            <CardTitle className="text-sm font-bold text-gray-800">How to Link Your Child</CardTitle>
+            <CardDescription className="text-xs text-gray-500 font-semibold">Follow these simple steps to retrieve your parent code.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                  1
+                </span>
+                <p className="text-xs sm:text-sm text-gray-650 font-semibold leading-relaxed">
+                  Log in to the <span className="font-bold text-gray-850">Student Dashboard</span> using your child's device/account.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                  2
+                </span>
+                <p className="text-xs sm:text-sm text-gray-655 font-semibold leading-relaxed">
+                  Navigate to the <span className="font-bold text-gray-850">Profile Settings</span> page.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                  3
+                </span>
+                <p className="text-xs sm:text-sm text-gray-655 font-semibold leading-relaxed">
+                  Go to the <span className="font-bold text-gray-850">Link Parents</span> tab and click <span className="font-bold text-blue-650">"Generate Parent Linking Code"</span>.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 pt-6 space-y-4">
+              <form onSubmit={handleLinkSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="linkCode" className="text-xs font-bold text-gray-750">Enter Parent Linking Code</Label>
+                  <Input
+                    id="linkCode"
+                    placeholder="NSP-XXXX-XXXX"
+                    value={linkingCode}
+                    onChange={(e) => setLinkingCode(e.target.value)}
+                    required
+                    className="h-12 border-gray-300 focus:border-blue-500 rounded-xl text-center text-sm font-extrabold tracking-wider uppercase"
+                  />
+                </div>
+
+                {/* Demo Helper Banner */}
+                {USE_MOCK_DATA && (
+                  <div className="bg-yellow-50 border border-yellow-250 text-yellow-800 rounded-xl p-3.5 text-xs">
+                    <p className="font-bold flex items-center gap-1 mb-1">
+                      <span>💡</span> Nepalese Demo Linking Code
+                    </p>
+                    <p className="font-semibold text-gray-655">
+                      Use code <span className="font-mono font-extrabold bg-white px-2 py-0.5 rounded border border-yellow-300 text-yellow-805">NSP-4X8K-92LQ</span> to link student profile.
+                    </p>
+                  </div>
+                )}
+
+                {linkError && (
+                  <div className="bg-red-50 border border-red-200 text-red-650 rounded-xl p-3 text-xs font-bold">
+                    ⚠️ {linkError}
+                  </div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  disabled={isLinking}
+                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-xl border border-blue-600 font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all"
+                >
+                  {isLinking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Linking Student Profile...
+                    </>
+                  ) : (
+                    "Link Your Child"
+                  )}
+                </Button>
+              </form>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!activeChild) {
     return (
