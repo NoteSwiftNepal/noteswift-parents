@@ -11,20 +11,51 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { User, Bell, Shield, Loader2, Check, GraduationCap } from "lucide-react";
+import { User, Bell, Shield, Loader2, Check, GraduationCap, Link2Off } from "lucide-react";
 
 function SettingsContent() {
-  const { parent, children: linkedChildren, updateProfile, linkStudent } = useParentAuth();
+  const { parent, children: linkedChildren, updateProfile, linkStudent, unlinkStudent } = useParentAuth();
   const { toast } = useToast();
 
   const [fullName, setFullName] = useState(parent?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState(parent?.phoneNumber || "");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Link child state
+  // Link/Unlink child state
   const [linkCode, setLinkCode] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState("");
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+
+  const handleUnlinkStudent = async (studentId: string, studentName: string) => {
+    const confirm = window.confirm(`Are you sure you want to disconnect ${studentName} from your account? You will lose access to their academic stats, attendance, and progress reports.`);
+    if (!confirm) return;
+
+    setUnlinkingId(studentId);
+    try {
+      const result = await unlinkStudent(studentId);
+      if (result.success) {
+        toast({
+          title: "Student Unlinked",
+          description: `Successfully disconnected ${studentName}'s profile.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Unlink Failed",
+          description: result.message || "Failed to disconnect student profile.",
+        });
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred while unlinking student.",
+      });
+    } finally {
+      setUnlinkingId(null);
+    }
+  };
 
   const handleLinkStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,15 +228,34 @@ function SettingsContent() {
                     {linkedChildren.map((child) => (
                       <div 
                         key={child.id} 
-                        className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-300 bg-secondary/10"
+                        className="flex items-center justify-between p-3.5 rounded-xl border border-gray-300 bg-secondary/10"
                       >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200">
-                          {child.avatarEmoji}
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200 overflow-hidden">
+                            {child.avatarEmoji && (child.avatarEmoji.startsWith('http://') || child.avatarEmoji.startsWith('https://')) ? (
+                              <img src={child.avatarEmoji} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              child.avatarEmoji
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-800 leading-tight">{child.fullName}</span>
+                            <span className="text-[10px] text-gray-500 font-bold">{child.grade}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-gray-800 leading-tight">{child.fullName}</span>
-                          <span className="text-[10px] text-gray-500 font-bold">{child.grade}</span>
-                        </div>
+                        <button
+                          type="button"
+                          disabled={unlinkingId === child.id}
+                          onClick={() => handleUnlinkStudent(child.id, child.fullName)}
+                          className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center rounded-lg transition-colors border border-transparent shrink-0"
+                          title="Disconnect Student"
+                        >
+                          {unlinkingId === child.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                          ) : (
+                            <Link2Off className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     ))}
                   </div>

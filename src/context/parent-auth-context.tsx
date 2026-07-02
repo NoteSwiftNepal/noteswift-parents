@@ -18,6 +18,7 @@ interface ParentAuthContextType {
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string }>;
   registerWithPhone: (fullName: string, phoneNumber: string, email?: string, acceptTerms?: boolean) => Promise<{ success: boolean; otp?: string; message?: string }>;
   linkStudent: (code: string) => Promise<{ success: boolean; message?: string }>;
+  unlinkStudent: (studentId: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (fullName: string, phoneNumber: string) => Promise<{ success: boolean }>;
 }
@@ -55,8 +56,12 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
 
       // Populate local state from mock database or stored state
       const savedParent = localStorage.getItem('parentProfile');
-      if (savedParent) {
-        setParent(JSON.parse(savedParent));
+      if (savedParent && savedParent !== 'undefined' && savedParent !== 'null') {
+        try {
+          setParent(JSON.parse(savedParent));
+        } catch (e) {
+          setParent(null);
+        }
       } else {
         if (USE_MOCK_DATA) {
           setParent(mockDatabase.parent);
@@ -67,8 +72,12 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
       
       const savedChildren = localStorage.getItem('parentChildren');
       let currentChildren: ChildData[] = [];
-      if (savedChildren) {
-        currentChildren = JSON.parse(savedChildren);
+      if (savedChildren && savedChildren !== 'undefined' && savedChildren !== 'null') {
+        try {
+          currentChildren = JSON.parse(savedChildren);
+        } catch (e) {
+          currentChildren = [];
+        }
       } else {
         if (USE_MOCK_DATA) {
           const parentPhone = localStorage.getItem('parentPhone');
@@ -86,6 +95,57 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
       const savedChildId = localStorage.getItem('activeChildId');
       const active = currentChildren.find(c => c.id === savedChildId) || currentChildren[0];
       setActiveChildState(active || null);
+
+      // Background fetch to sync state with backend database in real environment runs
+      if (!USE_MOCK_DATA && token) {
+        (async () => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/parent/dashboard`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Parent session expired. Logging out.');
+              logout();
+              return;
+            }
+
+            if (!res.ok) {
+              console.warn(`Parent background sync returned status: ${res.status}`);
+              return;
+            }
+
+            const data = await res.json();
+            if (data.error === true) {
+              if (data.status === 401 || data.status === 403) {
+                console.warn('Parent session expired. Logging out.');
+                logout();
+              } else {
+                console.warn(`Parent background sync returned error: ${data.message}`);
+              }
+              return;
+            }
+
+            const resultData = data.result || {};
+            if (resultData.parent) {
+              const updatedParent = resultData.parent;
+              const updatedChildren = resultData.children || [];
+              
+              localStorage.setItem('parentProfile', JSON.stringify(updatedParent));
+              localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
+              
+              setParent(updatedParent);
+              setLinkedChildren(updatedChildren);
+              
+              const latestChildId = localStorage.getItem('activeChildId');
+              const latestActive = updatedChildren.find((c: any) => c.id === latestChildId) || updatedChildren[0];
+              setActiveChildState(latestActive || null);
+            }
+          } catch (err) {
+            console.warn('Failed to perform background parent status sync:', err);
+          }
+        })();
+      }
     } catch (err) {
       console.error('Parent auth check error:', err);
       logout();
@@ -137,7 +197,7 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ phoneNumber, purpose: 'login' })
         });
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok || data.error === true) {
           return { success: false, message: data.message || 'Failed to send OTP' };
         }
         setPendingPhone(phoneNumber);
@@ -175,7 +235,7 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ phoneNumber, purpose: 'register', fullName, email })
         });
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok || data.error === true) {
           return { success: false, message: data.message || 'Failed to send OTP' };
         }
         setPendingPhone(phoneNumber);
@@ -207,24 +267,30 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
         const response = await fetch(`${API_BASE_URL}/parent/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: pendingPhone, otpCode: otp })
+          body: JSON.stringify({
+            phoneNumber: pendingPhone,
+            otpCode: otp,
+            fullName: pendingRegData?.fullName,
+            email: pendingRegData?.email
+          })
         });
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok || data.error === true) {
           return { success: false, message: data.message || 'Verification failed' };
         }
 
-        localStorage.setItem('parentToken', data.token);
+        const resultData = data.result || {};
+        localStorage.setItem('parentToken', resultData.token);
         localStorage.setItem('parentPhone', pendingPhone);
-        localStorage.setItem('parentProfile', JSON.stringify(data.parent));
-        localStorage.setItem('parentChildren', JSON.stringify(data.children || []));
+        localStorage.setItem('parentProfile', JSON.stringify(resultData.parent));
+        localStorage.setItem('parentChildren', JSON.stringify(resultData.children || []));
         localStorage.setItem('isAuthenticated', 'true');
         
-        setParent(data.parent);
-        setLinkedChildren(data.children || []);
-        if (data.children && data.children.length > 0) {
-          localStorage.setItem('activeChildId', data.children[0].id);
-          setActiveChildState(data.children[0]);
+        setParent(resultData.parent);
+        setLinkedChildren(resultData.children || []);
+        if (resultData.children && resultData.children.length > 0) {
+          localStorage.setItem('activeChildId', resultData.children[0].id);
+          setActiveChildState(resultData.children[0]);
         } else {
           setActiveChildState(null);
         }
@@ -305,11 +371,11 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ linkCode: code })
         });
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok || data.error === true) {
           return { success: false, message: data.message || 'Failed to link student' };
         }
         
-        const newChild = data.linkedStudent;
+        const newChild = data.result?.linkedStudent;
         const updatedChildren = [...linkedChildren, newChild];
         localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
         localStorage.setItem('activeChildId', newChild.id);
@@ -349,6 +415,62 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const unlinkStudent = async (studentId: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      setLoading(true);
+
+      if (!USE_MOCK_DATA) {
+        const token = localStorage.getItem('parentToken');
+        const response = await fetch(`${API_BASE_URL}/parent/unlink-student`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ studentId })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error === true) {
+          return { success: false, message: data.message || 'Failed to unlink student' };
+        }
+        
+        const updatedChildren = linkedChildren.filter(c => c.id !== studentId);
+        localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
+        
+        setLinkedChildren(updatedChildren);
+        if (activeChild?.id === studentId) {
+          const nextActive = updatedChildren[0] || null;
+          setActiveChildState(nextActive);
+          if (nextActive) {
+            localStorage.setItem('activeChildId', nextActive.id);
+          } else {
+            localStorage.removeItem('activeChildId');
+          }
+        }
+        return { success: true };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const updatedChildren = linkedChildren.filter(c => c.id !== studentId);
+      localStorage.setItem('parentChildren', JSON.stringify(updatedChildren));
+      setLinkedChildren(updatedChildren);
+      if (activeChild?.id === studentId) {
+        const nextActive = updatedChildren[0] || null;
+        setActiveChildState(nextActive);
+        if (nextActive) {
+          localStorage.setItem('activeChildId', nextActive.id);
+        } else {
+          localStorage.removeItem('activeChildId');
+        }
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to unlink student' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('parentToken');
     localStorage.removeItem('parentId');
@@ -379,7 +501,8 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({ fullName, phoneNumber })
         });
-        if (!response.ok) return { success: false };
+        const data = await response.json();
+        if (!response.ok || data.error === true) return { success: false };
         
         const updatedParent = { ...parent, fullName, phoneNumber };
         setParent(updatedParent);
@@ -417,6 +540,7 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     verifyOtp,
     registerWithPhone,
     linkStudent,
+    unlinkStudent,
     logout,
     updateProfile
   };

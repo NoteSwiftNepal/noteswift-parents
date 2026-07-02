@@ -69,7 +69,7 @@ export default function LoginPage() {
       if (result.success) {
         toast({
           title: "Verification Code Sent",
-          description: `OTP code sent to ${fullPhoneNumber}. (Demo code: 123456)`,
+          description: `OTP code sent to ${fullPhoneNumber}.${USE_MOCK_DATA ? ' (Demo code: 123456)' : ''}`,
         });
         setAuthStep("otp");
         setResendTimer(60);
@@ -109,7 +109,7 @@ export default function LoginPage() {
       if (result.success) {
         toast({
           title: "Registration Verification",
-          description: `OTP code sent to ${fullPhoneNumber}. (Demo code: 123456)`,
+          description: `OTP code sent to ${fullPhoneNumber}.${USE_MOCK_DATA ? ' (Demo code: 123456)' : ''}`,
         });
         setAuthStep("otp");
         setResendTimer(60);
@@ -165,7 +165,7 @@ export default function LoginPage() {
       if (result.success) {
         toast({
           title: "OTP Resent",
-          description: `New OTP sent to ${fullPhoneNumber}. (Demo code: 123456)`,
+          description: `New OTP sent to ${fullPhoneNumber}.${USE_MOCK_DATA ? ' (Demo code: 123456)' : ''}`,
         });
         setResendTimer(60);
         setOtpCode("");

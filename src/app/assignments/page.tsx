@@ -32,7 +32,7 @@ function AssignmentsContent() {
     );
   }
 
-  const assignments = activeChild.assignments;
+  const assignments = activeChild.assignments || [];
 
   // Filter assignments based on tab selection
   const filteredAssignments = assignments.filter(item => {

@@ -69,104 +69,103 @@ function DashboardContent() {
 
   if (!children || children.length === 0) {
     return (
-      <div className="max-w-xl mx-auto py-12 px-4 space-y-8">
+      <div className="max-w-md mx-auto py-12 px-4 space-y-6">
         {/* Onboarding Welcome Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex p-4 rounded-full bg-blue-50 text-blue-600 border border-blue-150 shadow-sm">
-            <GraduationCap className="h-10 w-10" />
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm mb-2">
+            <GraduationCap className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 tracking-tight">
-            Welcome to NoteSwift Parents Portal
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            Link your child's profile
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 font-semibold max-w-md mx-auto">
-            Your parent account is ready. To access transcripts, schedules, and billing, please link your child's profile.
+          <p className="text-sm text-gray-500 font-medium">
+            Connect your parent account to track grades, view attendance, and keep up with school updates.
           </p>
         </div>
 
         {/* Link Card instructions */}
-        <Card className="border-gray-300 shadow-lg bg-white rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gray-50/50 border-b border-gray-200 p-6">
-            <CardTitle className="text-sm font-bold text-gray-800">How to Link Your Child</CardTitle>
-            <CardDescription className="text-xs text-gray-500 font-semibold">Follow these simple steps to retrieve your parent code.</CardDescription>
-          </CardHeader>
+        <Card className="border border-gray-200 shadow-sm bg-white rounded-2xl overflow-hidden">
           <CardContent className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+            <form onSubmit={handleLinkSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="linkCode" className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                  Parent Linking Code
+                </Label>
+                <Input
+                  id="linkCode"
+                  placeholder="NSP-XXXX-XXXX"
+                  value={linkingCode}
+                  onChange={(e) => setLinkingCode(e.target.value)}
+                  required
+                  className="h-11 border-gray-200 focus:border-blue-500 rounded-xl text-center text-sm font-semibold tracking-wider uppercase"
+                />
+              </div>
+
+              {linkError && (
+                <div className="bg-red-50 text-red-600 rounded-xl p-3 text-xs font-semibold border border-red-100 text-center">
+                  {linkError}
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                disabled={isLinking}
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow-sm transition-all"
+              >
+                {isLinking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Linking...
+                  </>
+                ) : (
+                  "Link Account"
+                )}
+              </Button>
+            </form>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-gray-100"></div>
+              <span className="flex-shrink mx-3 text-gray-400 text-xs font-semibold">How to get the code?</span>
+              <div className="flex-grow border-t border-gray-100"></div>
+            </div>
+
+            <div className="space-y-3.5 text-xs text-gray-500 font-semibold leading-relaxed">
+              <div className="flex gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-bold border border-gray-200 shrink-0">
                   1
                 </span>
-                <p className="text-xs sm:text-sm text-gray-650 font-semibold leading-relaxed">
-                  Log in to the <span className="font-bold text-gray-850">Student Dashboard</span> using your child's device/account.
+                <p>
+                  Have your child log in to their <span className="text-gray-700 font-bold">Student Dashboard</span>.
                 </p>
               </div>
 
-              <div className="flex gap-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+              <div className="flex gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-bold border border-gray-200 shrink-0">
                   2
                 </span>
-                <p className="text-xs sm:text-sm text-gray-655 font-semibold leading-relaxed">
-                  Navigate to the <span className="font-bold text-gray-850">Profile Settings</span> page.
+                <p>
+                  Go to <span className="text-gray-700 font-bold">Profile Settings &gt; Link Parents</span>.
                 </p>
               </div>
 
-              <div className="flex gap-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+              <div className="flex gap-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-bold border border-gray-200 shrink-0">
                   3
                 </span>
-                <p className="text-xs sm:text-sm text-gray-655 font-semibold leading-relaxed">
-                  Go to the <span className="font-bold text-gray-850">Link Parents</span> tab and click <span className="font-bold text-blue-650">"Generate Parent Linking Code"</span>.
+                <p>
+                  Click <span className="text-gray-700 font-bold">Generate Code</span> and paste it above.
                 </p>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6 space-y-4">
-              <form onSubmit={handleLinkSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="linkCode" className="text-xs font-bold text-gray-750">Enter Parent Linking Code</Label>
-                  <Input
-                    id="linkCode"
-                    placeholder="NSP-XXXX-XXXX"
-                    value={linkingCode}
-                    onChange={(e) => setLinkingCode(e.target.value)}
-                    required
-                    className="h-12 border-gray-300 focus:border-blue-500 rounded-xl text-center text-sm font-extrabold tracking-wider uppercase"
-                  />
-                </div>
-
-                {/* Demo Helper Banner */}
-                {USE_MOCK_DATA && (
-                  <div className="bg-yellow-50 border border-yellow-250 text-yellow-800 rounded-xl p-3.5 text-xs">
-                    <p className="font-bold flex items-center gap-1 mb-1">
-                      <span>💡</span> Nepalese Demo Linking Code
-                    </p>
-                    <p className="font-semibold text-gray-655">
-                      Use code <span className="font-mono font-extrabold bg-white px-2 py-0.5 rounded border border-yellow-300 text-yellow-805">NSP-4X8K-92LQ</span> to link student profile.
-                    </p>
-                  </div>
-                )}
-
-                {linkError && (
-                  <div className="bg-red-50 border border-red-200 text-red-650 rounded-xl p-3 text-xs font-bold">
-                    ⚠️ {linkError}
-                  </div>
-                )}
-
-                <Button 
-                  type="submit" 
-                  disabled={isLinking}
-                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-xl border border-blue-600 font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all"
-                >
-                  {isLinking ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Linking Student Profile...
-                    </>
-                  ) : (
-                    "Link Your Child"
-                  )}
-                </Button>
-              </form>
-            </div>
+            {/* Demo Helper Banner */}
+            {USE_MOCK_DATA && (
+              <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 text-xs text-center">
+                <p className="font-semibold text-amber-800">
+                  💡 Nepal Demo Code: <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-amber-200">NSP-4X8K-92LQ</span>
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -186,7 +185,7 @@ function DashboardContent() {
 
   // Heatmap rendering helpers
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const heatmapData = activeChild.activityHeatmap; // 56 entries (8 weeks * 7 days)
+  const heatmapData = activeChild.activityHeatmap || Array.from({ length: 56 }, () => 0);
   
   // Group heatmapData into columns of 7 days (representing weeks)
   const weeks: number[][] = [];
@@ -235,7 +234,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="space-y-1">
             <div className="text-3xl font-extrabold text-gray-900">
-              {activeChild.classesAttendedToday} / {activeChild.totalClassesToday}
+              {activeChild.classesAttendedToday ?? 0} / {activeChild.totalClassesToday ?? 0}
             </div>
             <p className="text-xs sm:text-sm text-gray-500 font-semibold">Attended classes</p>
           </CardContent>
@@ -251,11 +250,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="space-y-1.5">
             <div className="text-3xl font-extrabold text-gray-900">
-              {activeChild.assignmentsDueCount}
+              {activeChild.assignmentsDueCount ?? 0}
             </div>
             <div className="flex items-center gap-1.5">
-              <Badge variant={activeChild.assignmentsDueStatus === "On track" ? "secondary" : "destructive"} className="text-xs px-2.5 py-0.5 rounded-full font-bold">
-                {activeChild.assignmentsDueStatus}
+              <Badge variant={(activeChild.assignmentsDueStatus || "None") === "On track" ? "secondary" : "destructive"} className="text-xs px-2.5 py-0.5 rounded-full font-bold">
+                {activeChild.assignmentsDueStatus || "None"}
               </Badge>
             </div>
           </CardContent>
@@ -271,7 +270,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="space-y-1">
             <div className="text-3xl font-extrabold text-gray-900">
-              {activeChild.studyHoursToday} hrs
+              {activeChild.studyHoursToday ?? 0} hrs
             </div>
             <p className="text-xs sm:text-sm text-gray-500 font-semibold">Active on learning portal</p>
           </CardContent>
@@ -287,9 +286,9 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="space-y-1">
             <div className="text-3xl font-extrabold text-gray-900">
-              {activeChild.latestMockTestScore}%
+              {activeChild.latestMockTestScore ?? 0}%
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 font-semibold">Math Trigonometry Exam</p>
+            <p className="text-xs sm:text-sm text-gray-500 font-semibold">Latest benchmark score</p>
           </CardContent>
         </Card>
       </div>
@@ -307,35 +306,41 @@ function DashboardContent() {
               <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Learning indicators based on active performance logs.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              {activeChild.aiInsights.map((insight, idx) => (
-                <div 
-                  key={idx} 
-                  className={cn(
-                    "flex items-start gap-4 p-4 rounded-2xl border transition-all hover:shadow-sm",
-                    insight.type === "warning" ? "bg-red-50/50 border-red-300 text-red-900" :
-                    insight.type === "good" ? "bg-green-50/50 border-green-300 text-green-900" :
-                    "bg-blue-50/50 border-blue-300 text-blue-900"
-                  )}
-                >
-                  <div className={cn(
-                    "p-2 rounded-xl",
-                    insight.type === "warning" ? "bg-red-100 text-red-600" :
-                    insight.type === "good" ? "bg-green-100 text-green-600" :
-                    "bg-blue-100 text-blue-600"
-                  )}>
-                    {insight.type === "warning" ? <AlertTriangle className="h-5 w-5" /> :
-                     insight.type === "good" ? <CheckCircle className="h-5 w-5" /> :
-                     <Info className="h-5 w-5" />}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <h4 className="text-sm font-bold capitalize">
-                      {insight.type === "warning" ? "Needs Attention" :
-                       insight.type === "good" ? "Academic Success" : "General Update"}
-                    </h4>
-                    <p className="text-xs md:text-sm text-gray-700 leading-relaxed font-medium">{insight.text}</p>
-                  </div>
+              {(!activeChild.aiInsights || activeChild.aiInsights.length === 0) ? (
+                <div className="text-center py-6 text-gray-400 text-xs font-semibold">
+                  No learning insights generated yet. Insights will appear once the student starts participating in classes and tests.
                 </div>
-              ))}
+              ) : (
+                activeChild.aiInsights.map((insight, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "flex items-start gap-4 p-4 rounded-2xl border transition-all hover:shadow-sm",
+                      insight.type === "warning" ? "bg-red-50/50 border-red-300 text-red-900" :
+                      insight.type === "good" ? "bg-green-50/50 border-green-300 text-green-900" :
+                      "bg-blue-50/50 border-blue-300 text-blue-900"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl",
+                      insight.type === "warning" ? "bg-red-100 text-red-600" :
+                      insight.type === "good" ? "bg-green-100 text-green-600" :
+                      "bg-blue-100 text-blue-600"
+                    )}>
+                      {insight.type === "warning" ? <AlertTriangle className="h-5 w-5" /> :
+                       insight.type === "good" ? <CheckCircle className="h-5 w-5" /> :
+                       <Info className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <h4 className="text-sm font-bold capitalize">
+                        {insight.type === "warning" ? "Needs Attention" :
+                         insight.type === "good" ? "Academic Success" : "General Update"}
+                      </h4>
+                      <p className="text-xs md:text-sm text-gray-700 leading-relaxed font-medium">{insight.text}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -411,28 +416,34 @@ function DashboardContent() {
               <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Important tasks that require prompt attention.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-3.5">
-              {activeChild.upcomingAlerts.map((alert, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-gray-300 hover:bg-secondary/20 transition-all">
-                  <span className={cn(
-                    "flex h-2.5 w-2.5 rounded-full mt-1.5 shrink-0",
-                    alert.statusDot === "red" ? "bg-red-500 animate-pulse" :
-                    alert.statusDot === "yellow" ? "bg-yellow-500" :
-                    alert.statusDot === "green" ? "bg-green-500" : "bg-blue-500"
-                  )} />
-                  <div className="flex-1 space-y-1.5">
-                    <p className="text-xs md:text-sm font-semibold text-gray-800 leading-tight">
-                      {alert.title}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 font-semibold">
-                      <span className="capitalize bg-secondary px-1.5 py-0.5 rounded-md font-bold text-gray-650">
-                        {alert.type}
-                      </span>
-                      <span>•</span>
-                      <span>Due: {alert.relativeTime}</span>
+              {(!activeChild.upcomingAlerts || activeChild.upcomingAlerts.length === 0) ? (
+                <div className="text-center py-6 text-gray-400 text-xs font-semibold">
+                  🎉 All caught up! No pending deadlines.
+                </div>
+              ) : (
+                activeChild.upcomingAlerts.map((alert, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-gray-300 hover:bg-secondary/20 transition-all">
+                    <span className={cn(
+                      "flex h-2.5 w-2.5 rounded-full mt-1.5 shrink-0",
+                      alert.statusDot === "red" ? "bg-red-500 animate-pulse" :
+                      alert.statusDot === "yellow" ? "bg-yellow-500" :
+                      alert.statusDot === "green" ? "bg-green-500" : "bg-blue-500"
+                    )} />
+                    <div className="flex-1 space-y-1.5">
+                      <p className="text-xs md:text-sm font-semibold text-gray-800 leading-tight">
+                        {alert.title}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 font-semibold">
+                        <span className="capitalize bg-secondary px-1.5 py-0.5 rounded-md font-bold text-gray-650">
+                          {alert.type}
+                        </span>
+                        <span>•</span>
+                        <span>Due: {alert.relativeTime}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -446,27 +457,33 @@ function DashboardContent() {
               <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Live study activity logged today.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="relative border-l-2 border-gray-300 pl-6 ml-3 space-y-6">
-                {activeChild.activityTimeline.map((item, idx) => (
-                  <div key={idx} className="relative">
-                    {/* Circle Dot */}
-                    <div className="absolute -left-[37px] top-0.5 flex items-center justify-center h-6 w-6 rounded-full bg-white border-2 border-indigo-500 shadow-sm">
-                      <BookMarked className="h-3 w-3 text-indigo-600" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
-                          {item.time}
-                        </span>
+              {(!activeChild.activityTimeline || activeChild.activityTimeline.length === 0) ? (
+                <div className="text-center py-6 text-gray-400 text-xs font-semibold">
+                  No activity logs recorded today.
+                </div>
+              ) : (
+                <div className="relative border-l-2 border-gray-300 pl-6 ml-3 space-y-6">
+                  {activeChild.activityTimeline.map((item, idx) => (
+                    <div key={idx} className="relative">
+                      {/* Circle Dot */}
+                      <div className="absolute -left-[37px] top-0.5 flex items-center justify-center h-6 w-6 rounded-full bg-white border-2 border-indigo-500 shadow-sm">
+                        <BookMarked className="h-3 w-3 text-indigo-600" />
                       </div>
-                      <h4 className="text-xs sm:text-sm font-bold text-gray-800">{item.title}</h4>
-                      <p className="text-xs sm:text-sm text-gray-500 font-medium leading-relaxed">
-                        {item.subtext}
-                      </p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                            {item.time}
+                          </span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-800">{item.title}</h4>
+                        <p className="text-xs sm:text-sm text-gray-500 font-medium leading-relaxed">
+                          {item.subtext}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -493,29 +510,35 @@ function DashboardContent() {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            {mockDatabase.notices.map((notice) => (
-              <div 
-                key={notice.id} 
-                className="p-5 rounded-2xl border border-gray-300 bg-gradient-to-b from-gray-50/50 to-white hover:shadow-md transition-all space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <Badge variant={notice.category === "exam" ? "destructive" : notice.category === "event" ? "default" : "secondary"} className="text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
-                    {notice.category}
-                  </Badge>
-                  <span className="text-xs text-gray-500 font-bold">{notice.date}</span>
+            {USE_MOCK_DATA ? (
+              mockDatabase.notices.map((notice) => (
+                <div 
+                  key={notice.id} 
+                  className="p-5 rounded-2xl border border-gray-300 bg-gradient-to-b from-gray-50/50 to-white hover:shadow-md transition-all space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <Badge variant={notice.category === "exam" ? "destructive" : notice.category === "event" ? "default" : "secondary"} className="text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                      {notice.category}
+                    </Badge>
+                    <span className="text-xs text-gray-500 font-bold">{notice.date}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-800 line-clamp-1 leading-snug">
+                    {notice.title}
+                  </h4>
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium line-clamp-3 leading-relaxed">
+                    {notice.content}
+                  </p>
+                  <div className="border-t border-gray-300 pt-2.5 text-xs text-gray-500 font-semibold flex items-center justify-between">
+                    <span>Issued by:</span>
+                    <span className="font-bold text-gray-700">{notice.author}</span>
+                  </div>
                 </div>
-                <h4 className="text-sm font-bold text-gray-800 line-clamp-1 leading-snug">
-                  {notice.title}
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 font-medium line-clamp-3 leading-relaxed">
-                  {notice.content}
-                </p>
-                <div className="border-t border-gray-300 pt-2.5 text-xs text-gray-500 font-semibold flex items-center justify-between">
-                  <span>Issued by:</span>
-                  <span className="font-bold text-gray-700">{notice.author}</span>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-8 text-gray-400 text-xs font-semibold">
+                No active announcements or notices posted yet.
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

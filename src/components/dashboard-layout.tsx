@@ -279,8 +279,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2.5 h-11 px-2 sm:px-3.5 rounded-xl border-gray-300 hover:bg-secondary/40 shadow-sm transition-all duration-200 bg-white">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200 select-none">
-                        {activeChild.avatarEmoji}
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 border border-blue-200 select-none overflow-hidden">
+                        {activeChild.avatarEmoji && (activeChild.avatarEmoji.startsWith('http://') || activeChild.avatarEmoji.startsWith('https://')) ? (
+                          <img src={activeChild.avatarEmoji} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          activeChild.avatarEmoji
+                        )}
                       </div>
                       <div className="hidden sm:flex flex-col items-start text-left select-none gap-0.5">
                         <span className="text-[8px] font-extrabold text-gray-500 uppercase tracking-wider leading-none">Active Student</span>
@@ -301,8 +305,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           activeChild.id === child.id ? "bg-blue-50 text-blue-700 font-bold text-xs" : "hover:bg-secondary/60 text-gray-700 text-xs"
                         )}
                       >
-                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px] shrink-0 border border-blue-200">
-                          {child.avatarEmoji}
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px] shrink-0 border border-blue-200 overflow-hidden">
+                          {child.avatarEmoji && (child.avatarEmoji.startsWith('http://') || child.avatarEmoji.startsWith('https://')) ? (
+                            <img src={child.avatarEmoji} alt="avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            child.avatarEmoji
+                          )}
                         </div>
                         <div className="flex flex-col">
                           <span className="text-xs font-bold">{child.fullName}</span>

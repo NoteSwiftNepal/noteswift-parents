@@ -23,14 +23,15 @@ import {
 import { cn } from "@/lib/utils";
 import { mockDatabase, ChatThread, Message, Teacher } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { USE_MOCK_DATA } from "@/config/app-config";
 
 function MessagesContent() {
   const { activeChild, parent } = useParentAuth();
   const { toast } = useToast();
   
   // Chats list loaded from mock data
-  const [threads, setThreads] = useState<ChatThread[]>(mockDatabase.chats);
-  const [activeThreadId, setActiveThreadId] = useState<string>(mockDatabase.chats[0]?.id || "");
+  const [threads, setThreads] = useState<ChatThread[]>(USE_MOCK_DATA ? mockDatabase.chats : []);
+  const [activeThreadId, setActiveThreadId] = useState<string>(USE_MOCK_DATA ? (mockDatabase.chats[0]?.id || "") : "");
   const [typedMessage, setTypedMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
