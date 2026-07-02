@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { mockDatabase } from "@/data/mockData";
+import { USE_MOCK_DATA } from "@/config/app-config";
 
 function CareerGuidanceContent() {
   const { activeChild } = useParentAuth();
@@ -36,7 +37,7 @@ function CareerGuidanceContent() {
 
   // Filter resources based on the active child's age/grade level
   const isHighSchool = activeChild.grade.includes("Grade 10");
-  const filteredResources = mockDatabase.guidance.filter(resource => {
+  const filteredResources = !USE_MOCK_DATA ? [] : mockDatabase.guidance.filter(resource => {
     if (isHighSchool) {
       // Grade 10: Career Planning, Academic Streams, Stress
       return ["Career Planning", "Academic Streams", "Mental Well-being"].includes(resource.category);
@@ -141,42 +142,48 @@ function CareerGuidanceContent() {
             <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Helpful manuals, stress advice and career guidance writeups.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {filteredResources.map((resource) => (
-              <div 
-                key={resource.id}
-                className="p-4 border border-gray-300 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-full bg-white relative group"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <Badge variant="secondary" className="text-xs font-bold px-2 py-0.5 rounded-full uppercase bg-indigo-50 text-indigo-750 border border-indigo-300">
-                      {resource.category}
-                    </Badge>
-                    <span className="text-xs text-gray-500 font-bold flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {resource.readTime}
-                    </span>
+            {filteredResources.length > 0 ? (
+              filteredResources.map((resource) => (
+                <div 
+                  key={resource.id}
+                  className="p-4 border border-gray-300 rounded-2xl hover:shadow-md transition-all flex flex-col justify-between h-full bg-white relative group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Badge variant="secondary" className="text-xs font-bold px-2 py-0.5 rounded-full uppercase bg-indigo-50 text-indigo-750 border border-indigo-300">
+                        {resource.category}
+                      </Badge>
+                      <span className="text-xs text-gray-500 font-bold flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {resource.readTime}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-850 group-hover:text-blue-600 transition-colors">
+                      {resource.title}
+                    </h4>
+                    <p className="text-xs text-gray-550 leading-relaxed font-semibold">
+                      {resource.description}
+                    </p>
                   </div>
-                  <h4 className="text-sm font-bold text-gray-850 group-hover:text-blue-600 transition-colors">
-                    {resource.title}
-                  </h4>
-                  <p className="text-xs text-gray-550 leading-relaxed font-semibold">
-                    {resource.description}
-                  </p>
-                </div>
 
-                <div className="pt-3.5 border-t border-gray-300 mt-4 flex items-center justify-end">
-                  <Button 
-                    onClick={() => handleReadResource(resource.title)}
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 rounded-xl border border-transparent hover:border-gray-200"
-                  >
-                    <span>Read Article</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
+                  <div className="pt-3.5 border-t border-gray-300 mt-4 flex items-center justify-end">
+                    <Button 
+                      onClick={() => handleReadResource(resource.title)}
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 rounded-xl border border-transparent hover:border-gray-200"
+                    >
+                      <span>Read Article</span>
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-gray-400 text-xs font-semibold">
+                No career guidance resources posted yet.
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>

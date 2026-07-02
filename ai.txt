@@ -1,0 +1,352 @@
+═══════════════════════════════════════════════════════════════════════════
+NOTESWIFT-PARENTS — PHASE 1 BUILD PROMPT (FRONTEND ONLY, MOCK/SEED DATA)
+═══════════════════════════════════════════════════════════════════════════
+Paste this entire file as-is to your AI coding agent (e.g. Claude Code)
+while it has access to the noteswift root folder.
+
+───────────────────────────────────────────────────────────────────────────
+ROLE & CONTEXT
+───────────────────────────────────────────────────────────────────────────
+You are working inside the "noteswift" monorepo/root folder. It contains
+four sibling folders:
+
+  noteswift-backend     → unified backend, serves teacher, student, and
+                           (eventually) parent apps. DO NOT TOUCH in this
+                           phase.
+  noteswift-teacher     → finished frontend app. DO NOT MODIFY. Reference
+                           only — this defines the visual system you must
+                           replicate.
+  noteswift-student     → finished frontend app. DO NOT MODIFY. Reference
+                           only — same purpose as above.
+  noteswift-parents     → THIS IS YOUR WORKSPACE. Currently incomplete /
+                           to be built. All your work happens here.
+
+Your job in this phase is to build out noteswift-parents as a standalone,
+independently runnable frontend application — fully featured, fully
+themed, but powered by local mock/seed data (no live backend calls yet).
+
+There are two phases total. You are ONLY doing Phase 1 right now.
+  Phase 1 (THIS TASK)  → Frontend UI + UX + mock data, runs standalone.
+  Phase 2 (FUTURE TASK, NOT NOW) → Design/extend noteswift-backend schema,
+                           routes, auth, and models for parents, then wire
+                           noteswift-parents to the real API.
+
+Do not start any Phase 2 work. Do not edit noteswift-backend,
+noteswift-teacher, or noteswift-student. If you believe something in those
+folders MUST change for parents to work correctly later, just write it
+down in a NOTES_FOR_BACKEND_PHASE.md inside noteswift-parents — do not act
+on it now.
+
+───────────────────────────────────────────────────────────────────────────
+STEP 0 — DISCOVERY (DO THIS BEFORE WRITING ANY CODE)
+───────────────────────────────────────────────────────────────────────────
+1. Open and read through noteswift-teacher and noteswift-student in full
+   and extract, with exact values/snippets, not paraphrases:
+   a. Tech stack: framework (React/Next/Vite etc.), language (JS/TS),
+      styling approach (Tailwind config / CSS variables / styled-components
+      / CSS modules), state management (Context/Redux/Zustand/React Query
+      etc.), routing library, HTTP client (axios/fetch wrapper), form
+      library, icon library, animation library, package manager, and the
+      exact versions in package.json.
+   b. Theme system: every color token, font family + weights, font import
+      method (Google Fonts link vs local), border-radius scale, spacing
+      scale, shadow tokens, breakpoints. If they live in tailwind.config.*
+      or a theme/tokens file or global CSS :root variables — copy that
+      file's structure exactly (don't recreate it from scratch, reuse/port
+      it so all three apps stay visually identical).
+   c. Layout shell: sidebar structure (width, collapse behavior, sections,
+      active-state styling), topbar structure (title, date, right-side
+      icons/widgets), page container/grid conventions, card component
+      styling, table styling, button variants, badge/chip/tag styling,
+      modal/drawer patterns, toast/notification patterns, loading and
+      empty states.
+   d. Auth flow pattern: how login is implemented (form fields, validation,
+      token storage — localStorage/cookies, protected route wrapper,
+      redirect behavior, "remember me" if present, error handling UI).
+   e. Folder/file naming conventions, component structure (atomic/feature-
+      based), how API calls are organized (services/api folder pattern,
+      env variable naming like VITE_API_URL or NEXT_PUBLIC_API_URL), and
+      how each app currently runs with mock data if they ever did
+      (check for any mock/seed/fixtures folder pattern used previously).
+   f. Any shared/common package in the monorepo root (e.g. a `packages/ui`
+      or `shared` folder) that teacher/student both import from. If it
+      exists, noteswift-parents must use it too instead of duplicating
+      components.
+
+2. Open and read noteswift-backend to understand (read-only, do not edit):
+   a. Existing data models/schemas relevant to a parent (User, Student,
+      Class, Attendance, Assignment/Homework, Marks/Grades, Test/Exam,
+      Fee/Payment, Notice/Announcement, Message/Chat, Parent-Student
+      relationship/linking if it already exists in any form).
+   b. Auth mechanism (JWT/session), token payload shape, role field
+      conventions (e.g. role: "teacher" | "student" | "parent"?).
+   c. Existing API route naming conventions (REST shape, response
+      envelope format, pagination format, error format) so the mock data
+      layer you build now can mirror the eventual real response shapes
+      and require minimal rework in Phase 2.
+   Summarize all of this in NOTES_FOR_BACKEND_PHASE.md as you go — this
+   becomes the spec input for Phase 2 later.
+
+3. Reference file: a file named noteswift-parents-dashboard.html (already
+   provided in this project) is the FEATURE/STRUCTURE reference only.
+   IMPORTANT: Its colors, fonts, and visual styling must be IGNORED —
+   do not reuse its navy/blue/teal palette, its Fraunces+DM Sans fonts, or
+   any of its CSS. Only use it to understand WHAT the app needs to
+   contain — i.e. the information architecture, page list, dashboard
+   sections, widgets, and data points described below. The final visual
+   skin comes entirely from noteswift-teacher/noteswift-student (step 1).
+
+───────────────────────────────────────────────────────────────────────────
+STEP 1 — FEATURE / PAGE SPEC (extracted from the reference file)
+───────────────────────────────────────────────────────────────────────────
+Build the following navigation structure and pages. Re-skin everything in
+the teacher/student theme; keep this structure and the data widgets.
+
+SIDEBAR NAVIGATION
+  Main
+    - Dashboard
+    - Academic Progress
+    - Attendance
+    - Assignments
+    - Mock Tests / Exams
+  Communication
+    - Messages
+    - Career Guidance
+  Account
+    - Payments
+    - Settings
+  Sidebar footer: logged-in parent's profile chip (avatar, name, "Parent
+  Account" role label) — style per teacher/student sidebar footer pattern
+  if one exists, otherwise design consistent with their sidebar.
+
+TOPBAR (present on every authenticated page)
+  - Page title + current date
+  - Child/student switcher dropdown — REQUIRED: a parent account can be
+    linked to multiple children/students; this dropdown switches the
+    active child context for the entire dashboard. Build this as a real
+    stateful selector (e.g. Context/Zustand) that all pages read from,
+    backed by mock data with at least 2 children under one mock parent
+    account to prove the switching works.
+  - Language toggle (EN / NP) — UI only in this phase, wire to whatever
+    i18n approach (if any) teacher/student already use; otherwise stub it
+    as a visual toggle with a TODO comment.
+  - Notification bell with unread badge → opens a notification
+    list/dropdown (mock data).
+  - Profile icon → opens profile/account menu (view profile, settings,
+    logout).
+
+PAGE: LOGIN (new — must be a 1:1 clone of noteswift-teacher's or
+  noteswift-student's login page — SAME layout, SAME structure, SAME
+  branding/logo placement, SAME illustration/side-panel if one exists,
+  SAME spacing, SAME components — only the copy/role label changes to
+  reflect "Parent". This is NOT a "design something consistent" task,
+  it is a "copy the existing login page component and re-point it" task.
+  Open noteswift-teacher/src (or noteswift-student/src) and find its
+  Login page/component first; reuse it directly, don't rebuild from
+  scratch.)
+  - Email/phone + password fields, validation, show/hide password —
+    identical to the source app's fields and validation rules.
+  - "Forgot password" link (UI only, no backend yet) — same placement.
+  - REQUIRED: demo credentials must be pre-filled into the email and
+    password fields by default when the login page loads, so the form is
+    NOT empty on first render — e.g. email field defaults to
+    reena.sharma@example.com and password field defaults to password123.
+    The tester should be able to land on /login and immediately hit
+    Submit/Login without typing anything.
+  - Also display the demo credentials as visible text on the screen
+    (e.g. a small "Demo login: reena.sharma@example.com / password123"
+    note near the form), exactly matching however teacher/student
+    surface their own demo credentials, if they already do this —
+    follow their exact pattern/placement; if they don't already do this,
+    add it in a way that visually fits their login layout.
+  - Submit calls a mock auth function returning a fake JWT + parent
+    profile + linked children list, stored the same way teacher/student
+    store auth (so swapping in the real API later is a one-line change).
+  - Protected route wrapper redirecting unauthenticated users to /login.
+  - Logout clears session and redirects to /login.
+  - Seed the mock auth data so the pre-filled demo credentials actually
+    work end-to-end on submit (login → dashboard, fully populated).
+
+PAGE: DASHBOARD (home)
+  1. Welcome banner — greeting (time-of-day aware: Good Morning/Afternoon/
+     Evening), parent's name, one-line summary sentence about the active
+     child, plus 3 quick-stat chips: current GPA, attendance %, weekly
+     study hours.
+  2. Student overview card — avatar/initials, full name, class + stream +
+     school name, and 3 circular progress rings: GPA, Attendance %, Study
+     hours — built as real reusable ring/donut components (SVG or a chart
+     lib already used by teacher/student), not static images.
+  3. Today's snapshot — 4 stat cards in a row: classes attended today,
+     assignments due (with a status tag like "On track"/"Pending"),
+     study time logged today, latest mock test score. Each card: icon,
+     status tag, big number, short description.
+  4. Weekly performance chart — line/area chart, score trend over the
+     last 8 weeks. Use whatever charting library teacher/student already
+     use (don't introduce a new one if one exists in the stack).
+  5. Subject-wise performance — horizontal progress bars per subject with
+     percentage, color-coded by performance band.
+  6. AI Insights / Recommendations card — short list of insight items,
+     each typed as warning / good / info, with icon + one-line text
+     (e.g. "more practice needed in X", "great improvement in Y"). Mock
+     data is fine; structure it so a real recommendation engine could
+     populate it later.
+  7. Upcoming Alerts card — list of deadlines/reminders (assignment due,
+     test date, parent webinar/meeting, payment due), each with a colored
+     status dot, title, date, and a relative time chip (Tomorrow / This
+     week / Month name).
+  8. Activity heatmap — weekly grid showing study engagement intensity
+     over the past ~8 weeks, with a "Less → More" legend.
+  9. Today's activity timeline — chronological feed of the child's
+     activity for the day (lecture watched, quiz completed, notes
+     downloaded, etc.) with time, icon, title, and subtext.
+
+PAGE: ACADEMIC PROGRESS
+  - Full grade/marks history per subject, exam-wise breakdown, GPA trend
+    over terms, report-card style summary, downloadable/printable report
+    card view if teacher/student have an equivalent pattern for report
+    generation.
+
+PAGE: ATTENDANCE
+  - Calendar or table view of daily attendance (present/absent/late/leave),
+    monthly/term attendance %, filter by month, highlight absences.
+
+PAGE: ASSIGNMENTS
+  - List of assignments/homework given to the child: subject, title, due
+    date, submission status (submitted/pending/late), score if graded.
+    Filter/sort by subject and status.
+
+PAGE: MOCK TESTS / EXAMS
+  - History of mock tests/exams with scores, subject breakdown, comparison
+    to class average if that concept exists elsewhere in the app, and a
+    score trend chart.
+
+PAGE: MESSAGES
+  - Communication thread list between parent and teachers/school staff +
+    school-wide notices/announcements feed. Compose/reply UI (mock-send,
+    no real backend yet).
+
+PAGE: CAREER GUIDANCE
+  - Counseling resources / stream & career suggestions content list for
+    the child, simple content cards (this can be a lighter, mostly static
+    page — mock content is fine).
+
+PAGE: PAYMENTS
+  - Fee status overview, payment history table, outstanding dues, invoice/
+    receipt view, a "Pay Now" UI flow (mock only, no real payment gateway
+    integration in this phase).
+
+PAGE: SETTINGS
+  - Parent profile edit, manage linked children (view list; add/remove UI
+    can be stubbed), notification preferences, language preference,
+    password/security section, logout.
+
+───────────────────────────────────────────────────────────────────────────
+STEP 2 — TECHNICAL REQUIREMENTS
+───────────────────────────────────────────────────────────────────────────
+1. Tech stack: IDENTICAL to noteswift-teacher/noteswift-student — not
+   "similar," not "an equivalent alternative," not "a more modern choice."
+   Concretely:
+   - Same framework + same major version (e.g. if they use React 18 via
+     Vite, noteswift-parents uses React 18 via Vite — not Next.js, not
+     CRA, not a newer/older major version).
+   - Same language choice (JS or TS) and same tsconfig strictness if TS.
+   - Same styling approach verbatim (e.g. if they use Tailwind, use
+     Tailwind with the same config; if they use styled-components or CSS
+     Modules, use that — do not swap in Tailwind or anything else just
+     because it's more familiar).
+   - Same state management library (Context API, Redux, Zustand, etc.).
+   - Same routing library (e.g. react-router-dom) and same major version.
+   - Same HTTP client / API-calling pattern (axios vs fetch wrapper).
+   - Same form library (if any — e.g. react-hook-form, Formik).
+   - Same icon library, same charting library, same animation library,
+     same date library (e.g. date-fns vs dayjs vs moment) — reuse
+     whichever one teacher/student already picked rather than choosing
+     your own.
+   - Same package manager (npm vs yarn vs pnpm) and same Node version
+     expectations if specified (.nvmrc / engines field).
+   - Same linter/formatter config (ESLint/Prettier rules) and same
+     project structure conventions (folder names, file naming, alias
+     paths like "@/components").
+   Before writing package.json for noteswift-parents, open
+   noteswift-teacher/package.json and noteswift-student/package.json side
+   by side and carry over the same dependencies and versions for anything
+   shared in scope (UI/state/routing/http/forms/icons/charts/animation/
+   dates). Only add a new dependency if the feature genuinely doesn't
+   exist in either app yet — and even then, prefer whatever ecosystem
+   they're already in (e.g. if they're on Tailwind + shadcn/ui, add new
+   UI needs as shadcn/ui components, don't pull in a competing UI kit).
+2. Theme: port the exact theme tokens (colors, fonts, radii, shadows,
+   spacing) from teacher/student into noteswift-parents so a parent looking
+   at all three apps sees one consistent design system. If they share a
+   theme via a common package, consume that package; otherwise copy the
+   theme file(s) and keep them byte-for-byte equivalent (only add new
+   tokens if a genuinely new need arises, and keep them visually
+   consistent with the existing palette).
+3. Standalone runnability: noteswift-parents must run with
+   `npm install && npm run dev` (or whatever the equivalent script is in
+   teacher/student) with zero dependency on the backend being up. All data
+   must come from a local mock/seed data layer.
+4. Mock data layer design (important for Phase 2 reuse):
+   - Put all mock data in a clearly isolated location, e.g.
+     src/mocks/ or src/data/seed/.
+   - Shape every mock object to mirror the likely real API response shape
+     you inferred from noteswift-backend in Step 0 (same field names,
+     nesting, casing conventions, pagination envelope if backend uses one).
+   - Build a thin data-access layer (e.g. src/services/*.ts) that
+     currently reads from mocks but is structured so each function's
+     internals can be swapped for a real axios/fetch call later without
+     changing any component code. Use a single config flag/env var (e.g.
+     VITE_USE_MOCKS=true) gating mock vs real calls, matching the
+     convention used in teacher/student if they already have one.
+   - Seed at least: 1 parent account, 2 linked children, multiple subjects,
+     several weeks of attendance/performance/activity history, several
+     assignments in different states, a few mock test results, a handful
+     of notices/messages, and a basic fee/payment history — enough that
+     every page on the nav looks fully populated and realistic, not empty.
+5. Routing: protected routes for everything except /login. Sensible
+   redirects (logged-out → /login, logged-in hitting /login → /dashboard).
+6. Responsiveness: match the responsive breakpoints/behavior already used
+   by teacher/student (sidebar collapse on mobile, grid reflow, etc.).
+7. Accessibility: proper semantic HTML, labelled form fields, keyboard-
+   navigable nav/menus, sufficient color contrast within the inherited
+   theme.
+8. Code quality: follow the same linting/formatting config as the other
+   two apps if one exists at the repo root or per-app; otherwise mirror
+   teacher/student's own per-app config.
+
+───────────────────────────────────────────────────────────────────────────
+STEP 3 — DELIVERABLES / DEFINITION OF DONE
+───────────────────────────────────────────────────────────────────────────
+- [ ] noteswift-parents runs independently via its own dev script, no
+      backend required, no console errors.
+- [ ] Login page is a direct re-skin/reuse of teacher/student's own login
+      component (same layout/branding), opens with demo credentials
+      already filled in, and logging in with them works end-to-end into
+      a fully populated dashboard.
+- [ ] All nav pages listed above exist, are reachable, and are populated
+      with realistic seed data — no placeholder "TODO" pages.
+- [ ] Visual theme (colors, fonts, spacing, component styling, sidebar/
+      topbar layout) is visibly and structurally consistent with
+      noteswift-teacher and noteswift-student.
+- [ ] Child/student switcher works and changes dashboard data contextually.
+- [ ] Mock data layer is isolated and structured for an easy swap to real
+      API calls later (single flag/env toggle).
+- [ ] noteswift-backend, noteswift-teacher, and noteswift-student folders
+      are completely untouched.
+- [ ] noteswift-parents/package.json dependencies (framework, styling,
+      state, routing, http, forms, icons, charts, animation, dates) match
+      noteswift-teacher/noteswift-student's choices and major versions —
+      no substituted or "upgraded" libraries.
+- [ ] NOTES_FOR_BACKEND_PHASE.md exists inside noteswift-parents,
+      summarizing: required backend models/fields for parents, the
+      parent-student linking approach assumed, auth role assumptions, and
+      every API endpoint the mock service layer expects to eventually
+      call (method, path, request shape, response shape) — this is the
+      handoff spec for Phase 2.
+- [ ] A short README.md update inside noteswift-parents documenting how to
+      run the app standalone and where the mock data and demo login
+      credentials live.
+
+Do not begin Phase 2 (backend schema/route work) under any circumstances
+in this task. Stop once the above checklist is fully satisfied and
+summarize what was built.

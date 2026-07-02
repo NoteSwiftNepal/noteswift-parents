@@ -31,13 +31,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { mockDatabase, Invoice } from "@/data/mockData";
+import { USE_MOCK_DATA } from "@/config/app-config";
 
 function PaymentsContent() {
   const { activeChild } = useParentAuth();
   const { toast } = useToast();
   
   // Manage invoices in local state for interactiveness
-  const [invoices, setInvoices] = useState<Invoice[]>(mockDatabase.invoices);
+  const [invoices, setInvoices] = useState<Invoice[]>(USE_MOCK_DATA ? mockDatabase.invoices : []);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"connect_ips" | "esewa" | "khalti" | "card">("connect_ips");

@@ -23,7 +23,7 @@ function MockTestsContent() {
     );
   }
 
-  const tests = activeChild.mockTests;
+  const tests = activeChild.mockTests || [];
 
   // Calculate overall performance summary
   const totalTests = tests.length;

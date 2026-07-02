@@ -122,8 +122,16 @@ function AcademicProgressContent() {
             <CardTitle className="text-xs font-bold text-blue-700 uppercase tracking-wider">Current cumulative GPA</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-4xl font-extrabold text-blue-900">{activeChild.gpa.toFixed(2)}</div>
-            <p className="text-xs sm:text-sm text-blue-700 font-bold">Ranked #4 in {activeChild.grade.split(" (")[0]}</p>
+            <div className="text-4xl font-extrabold text-blue-900">
+              {(activeChild.gpa ?? activeChild.recentGpa ?? 0) > 0 
+                ? (activeChild.gpa ?? activeChild.recentGpa ?? 0).toFixed(2) 
+                : "N/A"}
+            </div>
+            <p className="text-xs sm:text-sm text-blue-700 font-bold">
+              {(activeChild.gpa ?? activeChild.recentGpa ?? 0) > 0 
+                ? `Ranked #4 in ${(activeChild.grade || "N/A").split(" (")[0]}`
+                : "No rank calculated yet"}
+            </p>
           </CardContent>
         </Card>
 
@@ -132,8 +140,8 @@ function AcademicProgressContent() {
             <CardTitle className="text-xs font-bold text-green-700 uppercase tracking-wider">Best Performing Subject</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-2xl font-extrabold text-green-950">Science</div>
-            <p className="text-xs sm:text-sm text-green-700 font-bold">Average: 92% (Grade: A+)</p>
+            <div className="text-2xl font-extrabold text-green-950">{(activeChild.subjectPerformance && activeChild.subjectPerformance.length > 0) ? activeChild.subjectPerformance[0].subject : "N/A"}</div>
+            <p className="text-xs sm:text-sm text-green-700 font-bold">Average: {(activeChild.subjectPerformance && activeChild.subjectPerformance.length > 0) ? `${activeChild.subjectPerformance[0].percentage}% (Grade: ${activeChild.subjectPerformance[0].grade})` : "No classes/tests graded yet"}</p>
           </CardContent>
         </Card>
 
@@ -142,8 +150,12 @@ function AcademicProgressContent() {
             <CardTitle className="text-xs font-bold text-purple-700 uppercase tracking-wider">Academic Standing</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-2xl font-extrabold text-purple-950">Excellent</div>
-            <p className="text-xs sm:text-sm text-purple-700 font-bold">Top 8% of the class grade</p>
+            <div className="text-2xl font-extrabold text-purple-950">
+              {(activeChild.gpa ?? activeChild.recentGpa ?? 0) > 0 
+                ? ((activeChild.gpa ?? activeChild.recentGpa ?? 0) >= 3.6 ? "Excellent" : (activeChild.gpa ?? activeChild.recentGpa ?? 0) >= 3.0 ? "Good" : "Satisfactory")
+                : "N/A"}
+            </div>
+            <p className="text-xs sm:text-sm text-purple-700 font-bold">Based on course benchmark GPA</p>
           </CardContent>
         </Card>
       </div>
@@ -168,24 +180,30 @@ function AcademicProgressContent() {
                 <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Current marks average and performance direction.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                {activeChild.subjectPerformance.map((subj, idx) => (
-                  <div key={idx} className="space-y-2 border-b border-gray-300 last:border-0 pb-4 last:pb-0">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-800">{subj.subject}</span>
-                        {getTrendBadge(subj.trend)}
+                {(!activeChild.subjectPerformance || activeChild.subjectPerformance.length === 0) ? (
+                  <div className="text-center py-12 text-gray-400 text-xs font-semibold">
+                    No course progress recorded yet. Graded subjects will show up here.
+                  </div>
+                ) : (
+                  activeChild.subjectPerformance.map((subj, idx) => (
+                    <div key={idx} className="space-y-2 border-b border-gray-300 last:border-0 pb-4 last:pb-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-800">{subj.subject}</span>
+                          {getTrendBadge(subj.trend)}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-gray-500">Grade {subj.grade}</span>
+                          <span className="font-extrabold text-gray-900">{subj.percentage}%</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-bold text-gray-500">Grade {subj.grade}</span>
-                        <span className="font-extrabold text-gray-900">{subj.percentage}%</span>
+                        <Progress value={subj.percentage} className="flex-1 h-2 rounded-full" />
+                        {getTrendIcon(subj.trend)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Progress value={subj.percentage} className="flex-1 h-2 rounded-full" />
-                      {getTrendIcon(subj.trend)}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
 

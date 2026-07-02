@@ -69,6 +69,7 @@ export interface ChildData {
   schoolName: string;
   avatarEmoji: string;
   gpa: number;
+  recentGpa?: number;
   attendancePercent: number;
   weeklyStudyHours: number;
   

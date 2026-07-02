@@ -24,7 +24,7 @@ function AttendanceContent() {
     );
   }
 
-  const attendance = activeChild.attendanceHistory;
+  const attendance = activeChild.attendanceHistory || [];
 
   // Calculate counts
   const totalDays = attendance.length;
@@ -148,24 +148,30 @@ function AttendanceContent() {
             <CardDescription className="text-xs sm:text-sm text-gray-500 font-semibold">Daily attendance status grid.</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="grid grid-cols-5 gap-3 max-w-[280px] mx-auto pt-4">
-              {attendance.map((record, idx) => (
-                <div 
-                  key={idx}
-                  className={cn(
-                    "aspect-square rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm relative group cursor-pointer transition-transform hover:scale-105",
-                    getStatusColor(record.status)
-                  )}
-                >
-                  {new Date(record.date).getDate()}
-                  
-                  {/* Tooltip */}
-                  <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
-                    {record.date} ({record.status})
-                  </span>
-                </div>
-              ))}
-            </div>
+            {attendance.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-xs font-semibold">
+                No calendar grid data. Participation logs will show up here once class sessions are active.
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-3 max-w-[280px] mx-auto pt-4">
+                {attendance.map((record, idx) => (
+                  <div 
+                    key={idx}
+                    className={cn(
+                      "aspect-square rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm relative group cursor-pointer transition-transform hover:scale-105",
+                      getStatusColor(record.status)
+                    )}
+                  >
+                    {new Date(record.date).getDate()}
+                    
+                    {/* Tooltip */}
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
+                      {record.date} ({record.status})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Map Legend */}
             <div className="mt-8 grid grid-cols-2 gap-2 text-xs font-semibold text-gray-500">
